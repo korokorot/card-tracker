@@ -115,5 +115,28 @@
         "homura_without": 10800
       }
     }
+  },
+  {
+    "timestamp": "2026-11-06 13:08",
+    "boxes": {
+      "30th_celebration": {
+        "name": "MEGA 拡張パック「30th CELEBRATION」",
+        "mercari_with": 26200,
+        "mercari_without": null,
+        "snkrdunk_with": 21000,
+        "snkrdunk_without": 18000,
+        "homura_with": 21000,
+        "homura_without": 15000
+      },
+      "mega_dream_ex": {
+        "name": "MEGA ハイクラスパック「MEGAドリームex」",
+        "mercari_with": 12600,
+        "mercari_without": 10550,
+        "snkrdunk_with": 12300,
+        "snkrdunk_without": 10500,
+        "homura_with": 11900,
+        "homura_without": 10800
+      }
+    }
   }
 ]
