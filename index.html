@@ -12,8 +12,8 @@
       --text: #f8fafc;
       --sub: #94a3b8;
       --accent: #38bdf8;
-      --up: #ef4444;
-      --down: #22c55e;
+      --plus: #22c55e;   /* プラス（上昇・利益）＝ 緑に統一 */
+      --minus: #ef4444;  /* マイナス（下落・赤字）＝ 赤に統一 */
       --border: #334155;
     }
     * { box-sizing: border-box; }
@@ -78,8 +78,8 @@
     .box-meta {
       font-size: 9px; color: var(--sub); line-height: 1.1; white-space: nowrap;
     }
-    .profit-pos { color: #10b981; font-weight: bold; margin-left: 2px; }
-    .profit-neg { color: #ef4444; font-weight: bold; margin-left: 2px; }
+    .profit-pos { color: var(--plus); font-weight: bold; margin-left: 2px; }
+    .profit-neg { color: var(--minus); font-weight: bold; margin-left: 2px; }
 
     .p-val { font-size: 11px; font-weight: bold; display: block; white-space: nowrap; }
     .best-badge {
@@ -87,10 +87,10 @@
       padding: 1px 2px; color: #38bdf8; font-weight: bold; font-size: 11px;
       display: inline-block; white-space: nowrap;
     }
-    .mini-diff { font-size: 8px; display: block; margin-top: 1px; white-space: nowrap; }
-    .up { color: var(--up); }
-    .down { color: var(--down); }
-    .even { color: var(--sub); }
+    .mini-diff { font-size: 8px; display: block; margin-top: 1px; white-space: nowrap; font-weight: bold; }
+    .up { color: var(--plus); }
+    .down { color: var(--minus); }
+    .even { color: var(--sub); font-weight: normal; }
 
     @media (min-width: 600px) {
       body { padding: 16px; max-width: 960px; margin: 0 auto; }
@@ -114,7 +114,22 @@
     .card-title { font-size: 11px; color: var(--sub); margin-bottom: 4px; }
     .price { font-size: 15px; font-weight: bold; }
     .sub-note { font-size: 9px; color: var(--sub); margin-top: 3px; }
+    
     .chart-box { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; }
+    .chart-header {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+    }
+    .range-switch {
+      display: inline-flex; background: #0f172a; border-radius: 6px;
+      border: 1px solid var(--border); overflow: hidden;
+    }
+    .range-btn {
+      padding: 4px 8px; font-size: 10px; font-weight: bold;
+      color: var(--sub); cursor: pointer; white-space: nowrap;
+    }
+    .range-btn.active { background: var(--accent); color: #0f172a; }
+
     .hist-table { width: 100%; border-collapse: collapse; font-size: 10px; background: var(--card); border-radius: 12px; overflow: hidden; }
     .hist-table th, .hist-table td { padding: 7px 4px; text-align: right; border-bottom: 1px solid var(--border); }
     .hist-table th:first-child, .hist-table td:first-child { text-align: left; }
@@ -154,7 +169,15 @@
   <div class="grid" id="price-cards"></div>
 
   <div class="chart-box">
-    <div class="card-title" id="chart-title">📈 価格推移グラフ</div>
+    <div class="chart-header">
+      <div class="card-title" id="chart-title" style="margin:0;">📈 価格推移グラフ</div>
+      <div class="range-switch">
+        <div class="range-btn" id="range-7" onclick="setChartRange(7)">1週間</div>
+        <div class="range-btn" id="range-30" onclick="setChartRange(30)">1ヶ月</div>
+        <div class="range-btn" id="range-90" onclick="setChartRange(90)">3ヶ月</div>
+        <div class="range-btn active" id="range-0" onclick="setChartRange(0)">全期間</div>
+      </div>
+    </div>
     <canvas id="priceChart" height="210"></canvas>
   </div>
 
@@ -178,6 +201,7 @@
 let rawData = [];
 let shrinkMode = "with";
 let currentBoxId = "30th_celebration";
+let chartRangeDays = 0; // 0=全期間, 7=1週間, 30=1ヶ月, 90=3ヶ月
 let chartInstance = null;
 
 const BOX_MASTER = [
@@ -211,10 +235,30 @@ function setShrinkMode(mode) {
   renderAll();
 }
 
+function setChartRange(days) {
+  chartRangeDays = days;
+  [7, 30, 90, 0].forEach(d => {
+    const el = document.getElementById("range-" + d);
+    if (el) el.className = "range-btn" + (d === days ? " active" : "");
+  });
+  renderAll();
+}
+
 function selectBoxFromTable(boxId) {
   currentBoxId = boxId;
   renderAll();
   document.getElementById("detail-section").scrollIntoView({ behavior: "smooth" });
+}
+
+function parseTimestamp(tsStr) {
+  return new Date(tsStr.replace(" ", "T") + ":00+09:00");
+}
+
+function getFilteredChartData() {
+  if (!rawData.length || chartRangeDays === 0) return rawData;
+  const latestTime = parseTimestamp(rawData[rawData.length - 1].timestamp).getTime();
+  const cutoff = latestTime - (chartRangeDays * 24 * 60 * 60 * 1000);
+  return rawData.filter(d => parseTimestamp(d.timestamp).getTime() >= cutoff);
 }
 
 function renderSummaryTable(latest, prev) {
@@ -277,7 +321,7 @@ function renderAll() {
   const latest = rawData[rawData.length - 1];
   const prev = rawData.length > 1 ? rawData[rawData.length - 2] : latest;
 
-  document.getElementById("last-updated").textContent = `最終更新: ${latest.timestamp} （行タップで下部グラフ切替）`;
+  document.getElementById("last-updated").textContent = `最終更新: ${latest.timestamp} （±は前回比 / 行タップでグラフ切替）`;
 
   renderSummaryTable(latest, prev);
   renderTabs();
@@ -286,7 +330,7 @@ function renderAll() {
   const prevBox = prev.boxes[currentBoxId] || {};
   const masterInfo = BOX_MASTER.find(b => b.id === currentBoxId) || {};
 
-  document.getElementById("chart-title").textContent = `📈 ${masterInfo.name || ""} 推移（定価: ¥${(masterInfo.retail||0).toLocaleString()}）`;
+  document.getElementById("chart-title").textContent = `📈 ${masterInfo.name || ""}（定¥${(masterInfo.retail||0).toLocaleString()}）`;
 
   const mWithNet = currBox.mercari_with ? `手数料10%引: ¥${Math.round(currBox.mercari_with * 0.9).toLocaleString()}` : "";
   const yWithNet = currBox.yahoo_with ? `手数料5%引: ¥${Math.round(currBox.yahoo_with * 0.95).toLocaleString()}` : "";
@@ -313,7 +357,8 @@ function renderAll() {
     </div>
   `).join("");
 
-  const labels = rawData.map(d => d.timestamp.slice(5, 16));
+  const chartData = getFilteredChartData();
+  const labels = chartData.map(d => d.timestamp.slice(5, 16));
   const datasets = [
     { label: "メルカリ(有)", key: "mercari_with", color: "#ef4444", dash: [] },
     { label: "Yahoo!(有)", key: "yahoo_with", color: "#f59e0b", dash: [] },
@@ -321,7 +366,7 @@ function renderAll() {
     { label: "ホムラ買取(有)", key: "homura_with", color: "#22c55e", dash: [] },
   ].map(ds => ({
     label: ds.label,
-    data: rawData.map(d => (d.boxes[currentBoxId] || {})[ds.key] || null),
+    data: chartData.map(d => (d.boxes[currentBoxId] || {})[ds.key] || null),
     borderColor: ds.color,
     borderDash: ds.dash,
     tension: 0.2,
