@@ -2,8 +2,8 @@ name: Pokeca Price Tracker
 
 on:
   schedule:
-    # 日本時間の 11:00 と 21:00 に自動実行（UTC表記のため 2:00 と 12:00）
-    - cron: '0 2,12 * * *'
+    # 日本時間の 11:15 と 21:15 に自動実行（UTC表記: 2:15 と 12:15）
+    - cron: '15 2,12 * * *'
   workflow_dispatch:
 
 permissions:
