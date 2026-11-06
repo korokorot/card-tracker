@@ -23,5 +23,28 @@
         "souba_site": null
       }
     }
+  },
+  {
+    "timestamp": "2026-11-06 12:34",
+    "boxes": {
+      "30th_celebration": {
+        "name": "MEGA 拡張パック「30th CELEBRATION」",
+        "mercari_with": null,
+        "mercari_without": null,
+        "snkrdunk_with": null,
+        "snkrdunk_without": null,
+        "homura_with": null,
+        "homura_without": null
+      },
+      "mega_dream_ex": {
+        "name": "MEGA ハイクラスパック「MEGAドリームex」",
+        "mercari_with": null,
+        "mercari_without": null,
+        "snkrdunk_with": null,
+        "snkrdunk_without": null,
+        "homura_with": null,
+        "homura_without": null
+      }
+    }
   }
 ]
