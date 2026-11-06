@@ -14,6 +14,7 @@ TARGETS = [
     {
         "id": "30th_celebration",
         "name": "MEGA 拡張パック「30th CELEBRATION」",
+        "skip_mercari": True,  # 出品制限により異常値(1件等)になるためメルカリは除外し、Yahoo!フリマ等で取得
         "kw_general": ["30th CELEBRATION BOX", "30周年 拡張パック BOX"],
         "kw_without": ["30th CELEBRATION シュリンクなし", "30周年 拡張パック シュリンクなし"],
         "must_words": ["30TH", "30周年", "CELEBRATION"],
@@ -26,8 +27,8 @@ TARGETS = [
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/881427",
         "homura_with_url": "https://kaitori-homura.com/products/7237",
         "homura_without_url": "https://kaitori-homura.com/products/7238",
-        "min_valid_price": 15500,
-        "max_valid_price": 35000
+        "min_valid_price": 12000,
+        "max_valid_price": 24500  # 26,000円等の抱き合わせ・異常値を弾くため上限を適正化
     },
     {
         "id": "storm_emeralda",
@@ -154,7 +155,7 @@ TARGETS = [
 
 COMMON_NG_WORDS = [
     "空箱", "空き箱", "箱のみ", "パックのみ", "バラ", "1P", "5P", "10P", "1パック", "10パック", "15パック", "30パック",
-    "パック分", "1BOX分", "封入率", "カートン", "まとめ", "オリパ", "確定", "サーチ", "開封済",
+    "パック分", "1BOX分", "封入率", "カートン", "まとめ", "オリパ", "確定", "サーチ", "開封済", "おまけ",
     "SAR", "SR", "AR", "UR", "MA", "MUR", "FUR", "プロモ", "PSA", "シングル",
     "ピカチュウ", "ゲンガー", "リザードン", "ミュウ", "ルギア", "カイリュー", "アクリル", "ケースのみ"
 ]
@@ -167,36 +168,6 @@ DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK_URL", "")
 ALERT_THRESHOLD = 1000
 
 
-# === Yahoo!フリマの疎通テスト用関数 ===
-async def test_yahoo_fleamarket(page):
-    kw = quote("ストームエメラルダ BOX")
-    test_url = f"https://paypayfleamarket.yahoo.co.jp/search/{kw}?open=1"
-    print("\n----------------------------------------")
-    print(">>> [Yahoo Test] 開始: Yahoo!フリマへのアクセス検証")
-    try:
-        response = await page.goto(test_url, wait_until="domcontentloaded", timeout=30000)
-        status_code = response.status if response else "None"
-        await page.wait_for_timeout(4000)
-        title = await page.title()
-        content = await page.inner_text("body")
-        
-        # 商品リンクらしき要素をカウント
-        items = await page.query_selector_all('a[href*="/item/"]')
-        print(f">>> [Yahoo Test] HTTPステータス: {status_code}")
-        print(f">>> [Yahoo Test] ページタイトル: {title}")
-        print(f">>> [Yahoo Test] 本文文字数: {len(content)} / 検出商品数: {len(items)}")
-        
-        if "エラー" in title or "Forbidden" in title or len(content) < 500:
-            print(">>> [Yahoo Test] 判定: アクセス制限またはブロックの可能性が高いです")
-        else:
-            # サンプルの価格抽出テスト
-            prices = re.findall(r'[¥￥]\s*([\d,]{4,6})', content[:2000])
-            print(f">>> [Yahoo Test] 判定: アクセス成功！ 検出サンプル価格: {prices[:5]}")
-    except Exception as e:
-        print(f">>> [Yahoo Test] エラー発生: {e}")
-    print("----------------------------------------\n")
-
-
 def get_usd_jpy_rate():
     try:
         res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=10).json()
@@ -205,14 +176,18 @@ def get_usd_jpy_rate():
         return 157.0
 
 
-def classify_mercari_item(title, target):
+def classify_item_text(title, target):
+    """タイトルから 'with_shrink' / 'without_shrink' / None を判定（メルカリ・Yahoo共通）"""
     t_upper = title.upper()
     if not any(w.upper() in t_upper for w in target["must_words"]):
         return None
     for ng in COMMON_NG_WORDS + target["extra_ng_words"]:
         if ng.upper() in t_upper:
             return None
+    # 2BOX、２箱、×2、x3 などの複数個出品を除外
     if re.search(r'(?<!\d)[2-9２-９]\s*(BOX|ボックス|箱|個|点|セット)', t_upper):
+        return None
+    if re.search(r'[×✕xX]\s*[2-9２-９]', t_upper):
         return None
     if "セット" in t_upper and not any(ok in t_upper for ok in ["ローダー", "ケース"]):
         return None
@@ -273,7 +248,7 @@ async def fetch_mercari_items_from_url(page, keyword):
 
 
 async def scrape_mercari_box(page, target, usd_rate):
-    if not target["kw_general"]:
+    if not target["kw_general"] or target.get("skip_mercari"):
         return None, 0, None, 0
 
     with_prices, without_prices = [], []
@@ -292,7 +267,7 @@ async def scrape_mercari_box(page, target, usd_rate):
                 price = extract_mercari_price_jpy(raw_text, usd_rate, target)
                 if not price:
                     continue
-                status = classify_mercari_item(raw_text, target)
+                status = classify_item_text(raw_text, target)
                 if status == "with_shrink":
                     with_prices.append(price)
                 elif status == "without_shrink" and wo_kws:
@@ -308,7 +283,7 @@ async def scrape_mercari_box(page, target, usd_rate):
                     price = extract_mercari_price_jpy(raw_text, usd_rate, target)
                     if not price:
                         continue
-                    if classify_mercari_item(raw_text, target) == "without_shrink":
+                    if classify_item_text(raw_text, target) == "without_shrink":
                         without_prices.append(price)
 
         med_w = int(statistics.median(with_prices[:15])) if with_prices else None
@@ -316,6 +291,89 @@ async def scrape_mercari_box(page, target, usd_rate):
         return med_w, len(with_prices), med_wo, len(without_prices)
     except Exception as e:
         print(f"  [Mercari Error] {e}")
+        return None, 0, None, 0
+
+
+# === Yahoo!フリマ（旧PayPayフリマ）のスクレイピング処理 ===
+async def fetch_yahoo_items_from_url(page, keyword):
+    kw = quote(keyword)
+    # open=1 で「売り切れ」のみを検索
+    url = f"https://paypayfleamarket.yahoo.co.jp/search/{kw}?open=1"
+    await page.goto(url, wait_until="domcontentloaded", timeout=40000)
+    await page.wait_for_timeout(3500)
+
+    for _ in range(3):
+        await page.evaluate("window.scrollBy(0, 1400)")
+        await page.wait_for_timeout(1000)
+
+    items_data = await page.evaluate("""() => {
+        const results = [];
+        const links = document.querySelectorAll('a[href*="/item/"]');
+        links.forEach(a => {
+            let text = [a.getAttribute('aria-label') || '', a.innerText || ''].join(' ');
+            const imgs = a.querySelectorAll('img');
+            imgs.forEach(img => { text += ' ' + (img.getAttribute('alt') || ''); });
+            text = text.replace(/\\s+/g, ' ').trim();
+            if (text) results.push(text);
+        });
+        return results;
+    }""")
+    return items_data
+
+
+def extract_yahoo_price_jpy(raw_text, target):
+    matches = re.findall(r'([\d,]{4,7})\s*円|[¥￥]\s*([\d,]{4,7})', raw_text)
+    for m in matches:
+        val = int((m[0] or m[1]).replace(',', ''))
+        if target["min_valid_price"] <= val <= target["max_valid_price"]:
+            return val
+    return None
+
+
+async def scrape_yahoo_box(page, target):
+    if not target["kw_general"]:
+        return None, 0, None, 0
+
+    with_prices, without_prices = [], []
+    seen_texts = set()
+
+    gen_kws = target["kw_general"] if isinstance(target["kw_general"], list) else [target["kw_general"]]
+    wo_kws = target["kw_without"] if isinstance(target["kw_without"], list) else ([target["kw_without"]] if target["kw_without"] else [])
+
+    try:
+        for kw in gen_kws:
+            items = await fetch_yahoo_items_from_url(page, kw)
+            for raw_text in items:
+                if raw_text in seen_texts:
+                    continue
+                seen_texts.add(raw_text)
+                price = extract_yahoo_price_jpy(raw_text, target)
+                if not price:
+                    continue
+                status = classify_item_text(raw_text, target)
+                if status == "with_shrink":
+                    with_prices.append(price)
+                elif status == "without_shrink" and wo_kws:
+                    without_prices.append(price)
+
+        if wo_kws and len(without_prices) < 3:
+            for kw in wo_kws:
+                wo_items = await fetch_yahoo_items_from_url(page, kw)
+                for raw_text in wo_items:
+                    if raw_text in seen_texts:
+                        continue
+                    seen_texts.add(raw_text)
+                    price = extract_yahoo_price_jpy(raw_text, target)
+                    if not price:
+                        continue
+                    if classify_item_text(raw_text, target) == "without_shrink":
+                        without_prices.append(price)
+
+        med_w = int(statistics.median(with_prices[:15])) if with_prices else None
+        med_wo = int(statistics.median(without_prices[:15])) if without_prices else None
+        return med_w, len(with_prices), med_wo, len(without_prices)
+    except Exception as e:
+        print(f"  [Yahoo Error] {e}")
         return None, 0, None, 0
 
 
@@ -347,17 +405,31 @@ async def scrape_homura_single(page, url, target):
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
         await page.wait_for_timeout(3000)
+
+        primary_text = await page.evaluate("""() => {
+            const el = document.querySelector('main, article, .product-detail, [class*="product"]');
+            return el ? el.innerText : '';
+        }""")
+        
+        if primary_text:
+            m = re.search(r'買取(?:価格|金額)[^0-9]{0,20}([\d,]{4,6})', primary_text)
+            if m:
+                val = int(m.group(1).replace(',', ''))
+                if target["min_valid_price"] <= val <= target["max_valid_price"]:
+                    return val
+
+            for m2 in re.findall(r'([\d,]{4,6})\s*円', primary_text[:800]):
+                val = int(m2.replace(',', ''))
+                if target["min_valid_price"] <= val <= target["max_valid_price"]:
+                    return val
+
         content = await page.inner_text("body")
-        m = re.search(r'買取(?:価格|金額)[^0-9]{0,20}([\d,]{4,6})', content)
-        if m:
-            val = int(m.group(1).replace(',', ''))
+        m_fallback = re.search(r'買取(?:価格|金額)[^0-9]{0,20}([\d,]{4,6})', content)
+        if m_fallback:
+            val = int(m_fallback.group(1).replace(',', ''))
             if target["min_valid_price"] <= val <= target["max_valid_price"]:
                 return val
 
-        for m2 in re.findall(r'([\d,]{4,6})\s*円', content[:1500]):
-            val = int(m2.replace(',', ''))
-            if target["min_valid_price"] <= val <= target["max_valid_price"]:
-                return val
         return None
     except Exception as e:
         print(f"  [Homura Error] {url}: {e}")
@@ -373,12 +445,14 @@ def check_and_notify(history, new_entry):
     for box_id, box_data in new_entry["boxes"].items():
         box_name = box_data["name"]
         metrics = [
-            ("メルカリ(シュリ有)", "mercari_with"),
-            ("メルカリ(シュリ無)", "mercari_without"),
-            ("スニダン(シュリ有)", "snkrdunk_with"),
-            ("スニダン(シュリ無)", "snkrdunk_without"),
-            ("買取ホムラ(シュリ有)", "homura_with"),
-            ("買取ホムラ(シュリ無)", "homura_without"),
+            ("メルカリ(有)", "mercari_with"),
+            ("メルカリ(無)", "mercari_without"),
+            ("Yahoo!フリマ(有)", "yahoo_with"),
+            ("Yahoo!フリマ(無)", "yahoo_without"),
+            ("スニダン(有)", "snkrdunk_with"),
+            ("スニダン(無)", "snkrdunk_without"),
+            ("買取ホムラ(有)", "homura_with"),
+            ("買取ホムラ(無)", "homura_without"),
         ]
         for label, key in metrics:
             curr_val = box_data.get(key)
@@ -433,13 +507,13 @@ async def main():
         await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         page = await context.new_page()
 
-        # === ここでYahoo!フリマの疎通テストを1回だけ実行 ===
-        await test_yahoo_fleamarket(page)
-
         for target in TARGETS:
             print(f"=== Fetching {target['name']} ===")
             m_with, cnt_w, m_without, cnt_wo = await scrape_mercari_box(page, target, usd_rate)
             print(f"  [Mercari Result] 有: {m_with} ({cnt_w}件) / 無: {m_without} ({cnt_wo}件)")
+
+            y_with, y_cnt_w, y_without, y_cnt_wo = await scrape_yahoo_box(page, target)
+            print(f"  [Yahoo Result]   有: {y_with} ({y_cnt_w}件) / 無: {y_without} ({y_cnt_wo}件)")
 
             s_with = await scrape_snkrdunk_single(page, target["snkrdunk_with_url"], target)
             s_without = await scrape_snkrdunk_single(page, target["snkrdunk_without_url"], target)
@@ -447,23 +521,25 @@ async def main():
 
             h_with = await scrape_homura_single(page, target["homura_with_url"], target)
             h_without = await scrape_homura_single(page, target["homura_without_url"], target)
-            print(f"  [Homura Result] 有: {h_with} / 無: {h_without}")
+            print(f"  [Homura Result]  有: {h_with} / 無: {h_without}")
 
             prev_box = history[-1]["boxes"].get(target["id"], {}) if history else {}
 
+            allow_m = bool(target["kw_general"]) and not target.get("skip_mercari")
+            allow_y = bool(target["kw_general"])
+            allow_wo = bool(target["kw_without"])
+
             new_entry["boxes"][target["id"]] = {
                 "name": target["name"],
-                "mercari_with": m_with if target["kw_general"] else None,
-                "mercari_without": m_without if target["kw_without"] else None,
+                "mercari_with": (m_with or prev_box.get("mercari_with")) if allow_m else None,
+                "mercari_without": (m_without or prev_box.get("mercari_without")) if (allow_m and allow_wo) else None,
+                "yahoo_with": (y_with or prev_box.get("yahoo_with")) if allow_y else None,
+                "yahoo_without": (y_without or prev_box.get("yahoo_without")) if (allow_y and allow_wo) else None,
                 "snkrdunk_with": s_with or prev_box.get("snkrdunk_with"),
                 "snkrdunk_without": s_without or prev_box.get("snkrdunk_without"),
                 "homura_with": h_with or prev_box.get("homura_with"),
                 "homura_without": h_without or prev_box.get("homura_without"),
             }
-            if target["kw_general"] and not new_entry["boxes"][target["id"]]["mercari_with"]:
-                new_entry["boxes"][target["id"]]["mercari_with"] = prev_box.get("mercari_with")
-            if target["kw_without"] and not new_entry["boxes"][target["id"]]["mercari_without"]:
-                new_entry["boxes"][target["id"]]["mercari_without"] = prev_box.get("mercari_without")
 
         await browser.close()
 
