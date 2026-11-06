@@ -1,0 +1,40 @@
+name: Pokeca Price Tracker
+
+on:
+  schedule:
+    # 日本時間の 9:00 と 21:00 に自動実行（UTC表記のため 0:00 と 12:00）
+    - cron: '0 0,12 * * *'
+  workflow_dispatch: # 手動ですぐにテスト実行するためのボタン
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright requests
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run scraper
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python scraper.py
+
+      - name: Save and push data
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update price data" && git push)
