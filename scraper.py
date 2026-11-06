@@ -14,18 +14,20 @@ TARGETS = [
     {
         "id": "30th_celebration",
         "name": "MEGA 拡張パック「30th CELEBRATION」",
-        "kw_general": "ポケカ 30th BOX",
-        "kw_without": "ポケカ 30th BOX シュリンクなし",
+        # 英語表記と日本語表記の両方で検索して合算するリスト形式に対応
+        "kw_general": ["30th CELEBRATION BOX", "30周年 拡張パック BOX"],
+        "kw_without": ["30th CELEBRATION シュリンクなし", "30周年 拡張パック シュリンクなし"],
         "must_words": ["30TH", "30周年", "CELEBRATION"],
         "extra_ng_words": [
-            "フューチャリスティック", "FUTURISTIC", "カードセット", "9種", "御三家", "ファイル", "デッキ", "エネルギー",
+            "フューチャリスティック", "FUTURISTIC", "カードセット", "9種", "９種", "御三家", "ファイル", "デッキ", "エネルギー",
+            "エーフィ", "ブラッキー", "プレミアム", "コレクションファイル",
             "25TH", "25周年", "20TH", "20周年", "ゴールデン", "GOLDEN", "アニバーサリー", "アビスアイ", "ストームエメラルダ"
         ],
         "snkrdunk_with_url": "https://snkrdunk.com/apparels/881421",
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/881427",
         "homura_with_url": "https://kaitori-homura.com/products/7237",
         "homura_without_url": "https://kaitori-homura.com/products/7238",
-        "min_valid_price": 10000,
+        "min_valid_price": 15500,  # デッキセットや9種セットの混入を防ぐため引き上げ
         "max_valid_price": 35000
     },
     {
@@ -88,7 +90,7 @@ TARGETS = [
         "id": "sp_box_tohoku",
         "name": "スペシャルBOX ポケモンセンタートウホク",
         "kw_general": "スペシャルBOX トウホク",
-        "kw_without": "",  # シュリンク無は対象外
+        "kw_without": "",
         "must_words": ["トウホク", "東北"],
         "extra_ng_words": [
             "ヒロシマ", "フクオカ", "広島", "福岡", "プロモなし", "プロモ抜き", "サプライのみ",
@@ -138,7 +140,7 @@ TARGETS = [
     {
         "id": "30th_card_set_9",
         "name": "30th CELEBRATION カードセット 9種セット",
-        "kw_general": "",  # ご指定によりメルカリ検索は行わない
+        "kw_general": "",
         "kw_without": "",
         "must_words": [],
         "extra_ng_words": [],
@@ -153,7 +155,7 @@ TARGETS = [
 
 COMMON_NG_WORDS = [
     "空箱", "空き箱", "箱のみ", "パックのみ", "バラ", "1P", "5P", "10P", "1パック", "10パック", "15パック", "30パック",
-    "カートン", "まとめ", "オリパ", "確定", "サーチ", "開封済",
+    "パック分", "1BOX分", "封入率", "カートン", "まとめ", "オリパ", "確定", "サーチ", "開封済",
     "SAR", "SR", "AR", "UR", "MA", "MUR", "FUR", "プロモ", "PSA", "シングル",
     "ピカチュウ", "ゲンガー", "リザードン", "ミュウ", "ルギア", "カイリュー", "アクリル", "ケースのみ"
 ]
@@ -176,7 +178,6 @@ def get_usd_jpy_rate():
 
 
 def classify_mercari_item(title, target):
-    """タイトルから 'with_shrink' / 'without_shrink' / None を判定"""
     t_upper = title.upper()
 
     if not any(w.upper() in t_upper for w in target["must_words"]):
@@ -186,7 +187,6 @@ def classify_mercari_item(title, target):
         if ng.upper() in t_upper:
             return None
 
-    # 複数BOX売り（2BOX、3箱、2個セットなど）や「〇〇セット」の除外（「ローダーセット」等は許容するため数値＋セット等を弾く）
     if re.search(r'(?<!\d)[2-9２-９]\s*(BOX|ボックス|箱|個|点|セット)', t_upper):
         return None
     if "セット" in t_upper and not any(ok in t_upper for ok in ["ローダー", "ケース"]):
@@ -220,7 +220,6 @@ async def fetch_mercari_items_from_url(page, keyword):
     await page.goto(url, wait_until="domcontentloaded", timeout=40000)
     await page.wait_for_timeout(4000)
 
-    # 4回スクロールして最大100〜120件ほど読み込む
     for _ in range(4):
         await page.evaluate("window.scrollBy(0, 1400)")
         await page.wait_for_timeout(1200)
@@ -254,29 +253,39 @@ async def scrape_mercari_box(page, target, usd_rate):
         return None, 0, None, 0
 
     with_prices, without_prices = [], []
+    seen_texts = set()
+
+    gen_kws = target["kw_general"] if isinstance(target["kw_general"], list) else [target["kw_general"]]
+    wo_kws = target["kw_without"] if isinstance(target["kw_without"], list) else ([target["kw_without"]] if target["kw_without"] else [])
 
     try:
-        # 1. まずは広いキーワードで100件ほど取得して振り分け
-        items = await fetch_mercari_items_from_url(page, target["kw_general"])
-        for raw_text in items:
-            price = extract_mercari_price_jpy(raw_text, usd_rate, target)
-            if not price:
-                continue
-            status = classify_mercari_item(raw_text, target)
-            if status == "with_shrink":
-                with_prices.append(price)
-            elif status == "without_shrink" and target["kw_without"]:
-                without_prices.append(price)
-
-        # 2. もしシュリンク無が3件未満しか拾えなかった場合は、シュリンクなし専用検索で補充
-        if target["kw_without"] and len(without_prices) < 3:
-            wo_items = await fetch_mercari_items_from_url(page, target["kw_without"])
-            for raw_text in wo_items:
+        for kw in gen_kws:
+            items = await fetch_mercari_items_from_url(page, kw)
+            for raw_text in items:
+                if raw_text in seen_texts:
+                    continue
+                seen_texts.add(raw_text)
                 price = extract_mercari_price_jpy(raw_text, usd_rate, target)
                 if not price:
                     continue
-                if classify_mercari_item(raw_text, target) == "without_shrink":
+                status = classify_mercari_item(raw_text, target)
+                if status == "with_shrink":
+                    with_prices.append(price)
+                elif status == "without_shrink" and wo_kws:
                     without_prices.append(price)
+
+        if wo_kws and len(without_prices) < 3:
+            for kw in wo_kws:
+                wo_items = await fetch_mercari_items_from_url(page, kw)
+                for raw_text in wo_items:
+                    if raw_text in seen_texts:
+                        continue
+                    seen_texts.add(raw_text)
+                    price = extract_mercari_price_jpy(raw_text, usd_rate, target)
+                    if not price:
+                        continue
+                    if classify_mercari_item(raw_text, target) == "without_shrink":
+                        without_prices.append(price)
 
         med_w = int(statistics.median(with_prices[:15])) if with_prices else None
         med_wo = int(statistics.median(without_prices[:15])) if without_prices else None
