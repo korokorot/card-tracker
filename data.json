@@ -170,5 +170,109 @@
         "homura_without": null
       }
     }
+  },
+  {
+    "timestamp": "2026-11-06 22:13",
+    "boxes": {
+      "30th_celebration": {
+        "name": "MEGA 拡張パック「30th CELEBRATION」",
+        "mercari_with": null,
+        "mercari_without": null,
+        "yahoo_with": 21000,
+        "yahoo_without": 16999,
+        "snkrdunk_with": 21000,
+        "snkrdunk_without": 18500,
+        "homura_with": 21000,
+        "homura_without": 15000
+      },
+      "storm_emeralda": {
+        "name": "MEGA 拡張パック「ストームエメラルダ」",
+        "mercari_with": 9400,
+        "mercari_without": 7300,
+        "yahoo_with": 9100,
+        "yahoo_without": 7100,
+        "snkrdunk_with": 8998,
+        "snkrdunk_without": 7399,
+        "homura_with": 8800,
+        "homura_without": 7800
+      },
+      "abyss_eye": {
+        "name": "MEGA 拡張パック「アビスアイ」",
+        "mercari_with": 8400,
+        "mercari_without": 8100,
+        "yahoo_with": 8000,
+        "yahoo_without": 6900,
+        "snkrdunk_with": 7300,
+        "snkrdunk_without": 6950,
+        "homura_with": 8000,
+        "homura_without": 6500
+      },
+      "munikis_zero": {
+        "name": "MEGA 拡張パック「ムニキスゼロ」",
+        "mercari_with": 8400,
+        "mercari_without": 7600,
+        "yahoo_with": 8300,
+        "yahoo_without": 8300,
+        "snkrdunk_with": 7799,
+        "snkrdunk_without": 7400,
+        "homura_with": 7300,
+        "homura_without": 6600
+      },
+      "mega_dream_ex": {
+        "name": "MEGA ハイクラスパック「MEGAドリームex」",
+        "mercari_with": 12600,
+        "mercari_without": 11000,
+        "yahoo_with": 12500,
+        "yahoo_without": 11400,
+        "snkrdunk_with": 12200,
+        "snkrdunk_without": 10798,
+        "homura_with": 11900,
+        "homura_without": 10800
+      },
+      "sp_box_tohoku": {
+        "name": "スペシャルBOX ポケモンセンタートウホク",
+        "mercari_with": 13100,
+        "mercari_without": null,
+        "yahoo_with": 13200,
+        "yahoo_without": null,
+        "snkrdunk_with": 12600,
+        "snkrdunk_without": null,
+        "homura_with": 10500,
+        "homura_without": null
+      },
+      "sp_box_hiroshima": {
+        "name": "スペシャルBOX ポケモンセンターヒロシマ",
+        "mercari_with": 14100,
+        "mercari_without": null,
+        "yahoo_with": 14999,
+        "yahoo_without": null,
+        "snkrdunk_with": 13990,
+        "snkrdunk_without": null,
+        "homura_with": 11000,
+        "homura_without": null
+      },
+      "sp_box_fukuoka": {
+        "name": "スペシャルBOX ポケモンセンターフクオカ",
+        "mercari_with": 13600,
+        "mercari_without": null,
+        "yahoo_with": 13500,
+        "yahoo_without": null,
+        "snkrdunk_with": 12489,
+        "snkrdunk_without": null,
+        "homura_with": 10000,
+        "homura_without": null
+      },
+      "30th_card_set_9": {
+        "name": "30th CELEBRATION カードセット 9種セット",
+        "mercari_with": null,
+        "mercari_without": null,
+        "yahoo_with": null,
+        "yahoo_without": null,
+        "snkrdunk_with": null,
+        "snkrdunk_without": null,
+        "homura_with": 14300,
+        "homura_without": null
+      }
+    }
   }
 ]
