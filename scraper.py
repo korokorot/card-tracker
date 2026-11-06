@@ -14,7 +14,8 @@ TARGETS = [
     {
         "id": "30th_celebration",
         "name": "MEGA 拡張パック「30th CELEBRATION」",
-        "skip_mercari": True,  # 出品制限により異常値(1件等)になるためメルカリは除外し、Yahoo!フリマ等で取得
+        "skip_mercari": True,
+        "strict_box_type": True,  # Yahoo詳細の「種別」でシングル・パック・まとめ売りを厳格除外
         "kw_general": ["30th CELEBRATION BOX", "30周年 拡張パック BOX"],
         "kw_without": ["30th CELEBRATION シュリンクなし", "30周年 拡張パック シュリンクなし"],
         "must_words": ["30TH", "30周年", "CELEBRATION"],
@@ -28,11 +29,12 @@ TARGETS = [
         "homura_with_url": "https://kaitori-homura.com/products/7237",
         "homura_without_url": "https://kaitori-homura.com/products/7238",
         "min_valid_price": 12000,
-        "max_valid_price": 24500  # 26,000円等の抱き合わせ・異常値を弾くため上限を適正化
+        "max_valid_price": 24500
     },
     {
         "id": "storm_emeralda",
         "name": "MEGA 拡張パック「ストームエメラルダ」",
+        "strict_box_type": True,
         "kw_general": "ストームエメラルダ BOX",
         "kw_without": "ストームエメラルダ BOX シュリンクなし",
         "must_words": ["ストームエメラルダ", "エメラルダ"],
@@ -47,6 +49,7 @@ TARGETS = [
     {
         "id": "abyss_eye",
         "name": "MEGA 拡張パック「アビスアイ」",
+        "strict_box_type": True,
         "kw_general": "アビスアイ BOX",
         "kw_without": "アビスアイ BOX シュリンクなし",
         "must_words": ["アビスアイ"],
@@ -61,6 +64,7 @@ TARGETS = [
     {
         "id": "munikis_zero",
         "name": "MEGA 拡張パック「ムニキスゼロ」",
+        "strict_box_type": True,
         "kw_general": "ムニキスゼロ BOX",
         "kw_without": "ムニキスゼロ BOX シュリンクなし",
         "must_words": ["ムニキスゼロ"],
@@ -75,6 +79,7 @@ TARGETS = [
     {
         "id": "mega_dream_ex",
         "name": "MEGA ハイクラスパック「MEGAドリームex」",
+        "strict_box_type": True,
         "kw_general": "MEGAドリームex BOX",
         "kw_without": "MEGAドリームex BOX シュリンクなし",
         "must_words": ["MEGAドリーム", "メガドリーム", "ドリームEX"],
@@ -140,16 +145,23 @@ TARGETS = [
     {
         "id": "30th_card_set_9",
         "name": "30th CELEBRATION カードセット 9種セット",
-        "kw_general": "",
+        "skip_mercari": True,
+        "allow_set_word": True,
+        # ご指定の「未開封」「輸送箱未開封」をつけた検索ワードに変更
+        "kw_general": ["30th カードセット 9種 未開封", "30th 9種 輸送箱未開封"],
         "kw_without": "",
-        "must_words": [],
-        "extra_ng_words": [],
+        "must_words": ["9種", "９種", "コンプ", "全種"],
+        "require_unopened": True,  # タイトルまたは詳細に「未開封」「未使用」を必須化
+        "extra_ng_words": [
+            "フューチャリスティック", "FUTURISTIC", "デッキ", "エーフィ", "ブラッキー",
+            "1種", "2種", "3種", "単品", "バラ", "拡張パック"
+        ],
         "snkrdunk_with_url": "",
         "snkrdunk_without_url": "",
         "homura_with_url": "https://kaitori-homura.com/products/7780",
         "homura_without_url": "",
-        "min_valid_price": 9000,
-        "max_valid_price": 30000
+        "min_valid_price": 11000,
+        "max_valid_price": 25000
     }
 ]
 
@@ -177,20 +189,21 @@ def get_usd_jpy_rate():
 
 
 def classify_item_text(title, target):
-    """タイトルから 'with_shrink' / 'without_shrink' / None を判定（メルカリ・Yahoo共通）"""
     t_upper = title.upper()
     if not any(w.upper() in t_upper for w in target["must_words"]):
+        return None
+    if target.get("require_unopened") and not any(w in t_upper for w in ["未開封", "未使用", "新品"]):
         return None
     for ng in COMMON_NG_WORDS + target["extra_ng_words"]:
         if ng.upper() in t_upper:
             return None
-    # 2BOX、２箱、×2、x3 などの複数個出品を除外
     if re.search(r'(?<!\d)[2-9２-９]\s*(BOX|ボックス|箱|個|点|セット)', t_upper):
         return None
     if re.search(r'[×✕xX]\s*[2-9２-９]', t_upper):
         return None
-    if "セット" in t_upper and not any(ok in t_upper for ok in ["ローダー", "ケース"]):
-        return None
+    if not target.get("allow_set_word"):
+        if "セット" in t_upper and not any(ok in t_upper for ok in ["ローダー", "ケース"]):
+            return None
     if any(w in title for w in NO_SHRINK_WORDS):
         return "without_shrink"
     return "with_shrink"
@@ -294,10 +307,9 @@ async def scrape_mercari_box(page, target, usd_rate):
         return None, 0, None, 0
 
 
-# === Yahoo!フリマ（旧PayPayフリマ）のスクレイピング処理 ===
+# === Yahoo!フリマ：一覧取得 ＋ 個別ページの「種別・ボックス数・シュリンク」厳密チェック ===
 async def fetch_yahoo_items_from_url(page, keyword):
     kw = quote(keyword)
-    # open=1 で「売り切れ」のみを検索
     url = f"https://paypayfleamarket.yahoo.co.jp/search/{kw}?open=1"
     await page.goto(url, wait_until="domcontentloaded", timeout=40000)
     await page.wait_for_timeout(3500)
@@ -310,11 +322,12 @@ async def fetch_yahoo_items_from_url(page, keyword):
         const results = [];
         const links = document.querySelectorAll('a[href*="/item/"]');
         links.forEach(a => {
+            const href = a.href || a.getAttribute('href') || '';
             let text = [a.getAttribute('aria-label') || '', a.innerText || ''].join(' ');
             const imgs = a.querySelectorAll('img');
             imgs.forEach(img => { text += ' ' + (img.getAttribute('alt') || ''); });
             text = text.replace(/\\s+/g, ' ').trim();
-            if (text) results.push(text);
+            if (text && href) results.push({ text, href });
         });
         return results;
     }""")
@@ -330,47 +343,115 @@ def extract_yahoo_price_jpy(raw_text, target):
     return None
 
 
+async def inspect_yahoo_item_detail(page, item_url, initial_status, target):
+    """Yahoo!フリマの個別商品ページを開き、商品の詳細テーブル（種別・ボックス数・シュリンク）を検査する"""
+    try:
+        await page.goto(item_url, wait_until="domcontentloaded", timeout=25000)
+        await page.wait_for_timeout(1200)
+        body_text = await page.inner_text("body")
+
+        # 1. 「ボックス数」チェック：2個以上（2個、3個...）なら除外
+        m_box = re.search(r'ボックス数\s*([0-9０-９]+)\s*個', body_text)
+        if m_box:
+            # 全角数字を半角に変換して数値化
+            num_str = m_box.group(1).translate(str.maketrans('０１２３４５６７８９', '0123456789'))
+            if int(num_str) >= 2:
+                return None, f"ボックス数:{num_str}個"
+
+        # 2. 「種別」チェック：通常BOXの場合、シングルカード・パック・まとめ売り・周辺グッズは除外
+        m_type = re.search(r'種別\s*(シングルカード|パック|ボックス|まとめ売り|周辺グッズ)', body_text)
+        if m_type:
+            item_type = m_type.group(1)
+            if target.get("strict_box_type") and item_type != "ボックス":
+                return None, f"種別:{item_type}"
+            elif not target.get("strict_box_type") and item_type in ("シングルカード", "パック"):
+                return None, f"種別:{item_type}"
+
+        # 3. 説明文の中に「2BOX」「2箱」「プロモなし」等の地雷ワードが隠れていないかチェック
+        desc_Check = body_text[:1500]
+        if any(bad in desc_Check for bad in ["プロモなし", "プロモ抜き", "空箱", "空き箱", "パックのみ"]):
+            return None, "説明文NGワード"
+
+        # 4. 「シュリンク」項目による正確な振り分け上書き
+        m_shrink = re.search(r'シュリンク\s*(あり|なし|有|無)', body_text)
+        if m_shrink:
+            sh_val = m_shrink.group(1)
+            if sh_val in ("なし", "無"):
+                return "without_shrink", "詳細:シュリンクなし"
+            elif sh_val in ("あり", "有") and initial_status != "without_shrink":
+                return "with_shrink", "詳細:シュリンクあり"
+
+        return initial_status, "OK"
+    except Exception:
+        # 通信タイムアウト時はタイトル判定の結果をそのまま採用
+        return initial_status, "TimeoutFallback"
+
+
 async def scrape_yahoo_box(page, target):
     if not target["kw_general"]:
         return None, 0, None, 0
 
-    with_prices, without_prices = [], []
-    seen_texts = set()
+    candidates = []
+    seen_urls = set()
 
     gen_kws = target["kw_general"] if isinstance(target["kw_general"], list) else [target["kw_general"]]
     wo_kws = target["kw_without"] if isinstance(target["kw_without"], list) else ([target["kw_without"]] if target["kw_without"] else [])
 
     try:
+        # Step 1: 検索結果一覧から候補を収集
         for kw in gen_kws:
             items = await fetch_yahoo_items_from_url(page, kw)
-            for raw_text in items:
-                if raw_text in seen_texts:
+            for item in items:
+                href = item["href"].split("?")[0]
+                if href in seen_urls:
                     continue
-                seen_texts.add(raw_text)
-                price = extract_yahoo_price_jpy(raw_text, target)
+                seen_urls.add(href)
+                price = extract_yahoo_price_jpy(item["text"], target)
                 if not price:
                     continue
-                status = classify_item_text(raw_text, target)
-                if status == "with_shrink":
-                    with_prices.append(price)
-                elif status == "without_shrink" and wo_kws:
-                    without_prices.append(price)
+                status = classify_item_text(item["text"], target)
+                if status:
+                    candidates.append({"url": href, "price": price, "status": status})
 
-        if wo_kws and len(without_prices) < 3:
+        # シュリンク無しの候補が少ない場合は専用検索も追加
+        wo_cand_count = sum(1 for c in candidates if c["status"] == "without_shrink")
+        if wo_kws and wo_cand_count < 4:
             for kw in wo_kws:
                 wo_items = await fetch_yahoo_items_from_url(page, kw)
-                for raw_text in wo_items:
-                    if raw_text in seen_texts:
+                for item in wo_items:
+                    href = item["href"].split("?")[0]
+                    if href in seen_urls:
                         continue
-                    seen_texts.add(raw_text)
-                    price = extract_yahoo_price_jpy(raw_text, target)
+                    seen_urls.add(href)
+                    price = extract_yahoo_price_jpy(item["text"], target)
                     if not price:
                         continue
-                    if classify_item_text(raw_text, target) == "without_shrink":
-                        without_prices.append(price)
+                    status = classify_item_text(item["text"], target)
+                    if status:
+                        candidates.append({"url": href, "price": price, "status": status})
 
-        med_w = int(statistics.median(with_prices[:15])) if with_prices else None
-        med_wo = int(statistics.median(without_prices[:15])) if without_prices else None
+        # Step 2: 候補の上位（有:最大12件、無:最大8件）の個別ページを開いて「種別・ボックス数・シュリンク」を検査
+        with_cands = [c for c in candidates if c["status"] == "with_shrink"][:12]
+        without_cands = [c for c in candidates if c["status"] == "without_shrink"][:8]
+        inspect_list = with_cands + (without_cands if wo_kws else [])
+
+        with_prices, without_prices = [], []
+        rejected_reasons = []
+
+        for cand in inspect_list:
+            final_status, reason = await inspect_yahoo_item_detail(page, cand["url"], cand["status"], target)
+            if final_status == "with_shrink":
+                with_prices.append(cand["price"])
+            elif final_status == "without_shrink" and wo_kws:
+                without_prices.append(cand["price"])
+            else:
+                rejected_reasons.append(f"{cand['price']}円({reason})")
+
+        if rejected_reasons:
+            print(f"    [Yahoo Detail 除外] {', '.join(rejected_reasons[:6])}")
+
+        med_w = int(statistics.median(with_prices[:12])) if with_prices else None
+        med_wo = int(statistics.median(without_prices[:12])) if without_prices else None
         return med_w, len(with_prices), med_wo, len(without_prices)
     except Exception as e:
         print(f"  [Yahoo Error] {e}")
@@ -490,6 +571,12 @@ async def main():
                 history = json.load(f)
         except Exception:
             history = []
+
+    for record in history:
+        b30 = record.get("boxes", {}).get("30th_celebration")
+        if b30:
+            b30["mercari_with"] = None
+            b30["mercari_without"] = None
 
     new_entry = {"timestamp": now_str, "boxes": {}}
 
