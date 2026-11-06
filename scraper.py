@@ -29,7 +29,7 @@ TARGETS = [
         "name": "MEGA ハイクラスパック「MEGAドリームex」",
         "search_keyword": "MEGAドリームex BOX",
         "must_words": ["MEGAドリーム", "メガドリーム", "ドリームex"],
-        "extra_ng_words": ["デッキ", "ファイル"],
+        "extra_ng_words": ["デッキ", "ファイル", "アビスアイ", "テラスタル", "バトルパートナーズ", "151"],
         "snkrdunk_with_url": "https://snkrdunk.com/apparels/721913",
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/721915",
         "homura_with_url": "https://kaitori-homura.com/products/3465",
@@ -40,7 +40,7 @@ TARGETS = [
 ]
 
 COMMON_NG_WORDS = [
-    "空箱", "空き箱", "箱のみ", "パックのみ", "バラ", "1p", "5p", "10p", "1パック",
+    "空箱", "空き箱", "箱のみ", "パックのみ", "バラ", "1p", "5p", "10p", "1パック", "10パック",
     "カートン", "セット", "まとめ", "オリパ", "確定", "サーチ", "開封済",
     "SAR", "SR", "AR", "UR", "MA", "MUR", "FUR", "プロモ", "PSA", "シングル",
     "ピカチュウ", "ゲンガー", "リザードン", "ミュウ", "ルギア", "カイリュー", "アクリル", "ケース"
@@ -52,6 +52,15 @@ WITH_SHRINK_WORDS = ["シュリンク付き", "シュリンクつき", "シュ�
 DATA_FILE = "data.json"
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK_URL", "")
 ALERT_THRESHOLD = 1000
+
+
+def get_usd_jpy_rate():
+    """現在のドル円レートを取得（メルカリがUS$表示になった場合の換算用）"""
+    try:
+        res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=10).json()
+        return float(res["rates"]["JPY"])
+    except Exception:
+        return 153.0
 
 
 def filter_mercari_title(title, target):
@@ -67,7 +76,7 @@ def filter_mercari_title(title, target):
         if ng.upper() in t_upper:
             return None
 
-    # 複数BOX売り（2BOX、3箱など）を除外
+    # 複数BOX売り（2BOX、3箱、2個セットなど）を除外
     if re.search(r'[2-9２-９]\s*(BOX|ボックス|箱|個)', t_upper):
         return None
 
@@ -78,7 +87,27 @@ def filter_mercari_title(title, target):
     return None
 
 
-async def scrape_mercari(page, target):
+def extract_mercari_price_jpy(raw_text, usd_rate, target):
+    """メルカリのテキストから日本円価格を抽出（US$表記なら日本円に換算）"""
+    # 1. JPY属性や¥マークがあれば最優先
+    jpy_matches = re.findall(r'(?:[¥￥]|JPY_RAW:)\s*([\d,]{4,7})|([\d,]{4,7})\s*円', raw_text)
+    for m in jpy_matches:
+        val = int((m[0] or m[1]).replace(',', ''))
+        if target["min_valid_price"] <= val <= target["max_valid_price"]:
+            return val
+
+    # 2. US$ 表記になっている場合は為替レートで日本円に換算（100円単位で丸め）
+    usd_matches = re.findall(r'US\$\s*([\d,]+\.\d+|[\d,]+)', raw_text)
+    for m in usd_matches:
+        usd_val = float(m.replace(',', ''))
+        jpy_val = int(round((usd_val * usd_rate) / 100.0) * 100)
+        if target["min_valid_price"] <= jpy_val <= target["max_valid_price"]:
+            return jpy_val
+
+    return None
+
+
+async def scrape_mercari(page, target, usd_rate):
     kw = quote(target["search_keyword"])
     url = f"https://jp.mercari.com/search?keyword={kw}&status=sold_out&sort=created_time&order=desc"
     with_prices, without_prices = [], []
@@ -86,10 +115,9 @@ async def scrape_mercari(page, target):
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
         await page.wait_for_timeout(6000)
-        await page.evaluate("window.scrollBy(0, 1200)")
+        await page.evaluate("window.scrollBy(0, 1500)")
         await page.wait_for_timeout(3000)
 
-        # Shadow DOMの内部や画像のalt属性まで含めて商品情報を丸ごと抜き出すJavaScript
         items_data = await page.evaluate("""() => {
             const results = [];
             const links = document.querySelectorAll('a[href*="/item/m"]');
@@ -99,7 +127,9 @@ async def scrape_mercari(page, target):
                 imgs.forEach(img => { text += ' ' + (img.getAttribute('alt') || ''); });
                 const thumb = a.querySelector('mer-item-thumbnail');
                 if (thumb) {
-                    text += ' ' + (thumb.getAttribute('item-name') || '') + ' ¥' + (thumb.getAttribute('price') || '');
+                    const p = thumb.getAttribute('price');
+                    if (p) text += ' JPY_RAW:' + p;
+                    text += ' ' + (thumb.getAttribute('item-name') || '');
                     if (thumb.shadowRoot) {
                         text += ' ' + (thumb.shadowRoot.innerHTML || '');
                     }
@@ -109,27 +139,10 @@ async def scrape_mercari(page, target):
             return results;
         }""")
 
-        print(f"  [Mercari] Extracted items: {len(items_data)}")
-        if items_data:
-            print(f"  [Mercari Sample] {items_data[0][:120]}")
+        print(f"  [Mercari] Extracted items: {len(items_data)} (Rate: {usd_rate:.1f} JPY/USD)")
 
         for raw_text in items_data[:45]:
-            # 価格の抽出（¥12,345 や price="12345" など）
-            nums = re.findall(r'(?:[¥￥]|price=[\'"]?)\s*([\d,]{4,7})|([\d,]{4,7})\s*円', raw_text)
-            price = None
-            for m in nums:
-                val = int((m[0] or m[1]).replace(',', ''))
-                if target["min_valid_price"] <= val <= target["max_valid_price"]:
-                    price = val
-                    break
-            if not price:
-                # 予備：単純な数値抽出
-                for n in re.findall(r'\b(\d{1,2},\d{3}|\d{4,5})\b', raw_text):
-                    val = int(n.replace(',', ''))
-                    if target["min_valid_price"] <= val <= target["max_valid_price"]:
-                        price = val
-                        break
-
+            price = extract_mercari_price_jpy(raw_text, usd_rate, target)
             if not price:
                 continue
 
@@ -155,13 +168,11 @@ async def scrape_snkrdunk_single(page, url, target):
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
         await page.wait_for_timeout(4000)
         content = await page.inner_text("body")
-        # 「¥18,499~」や「購入手数料 ¥0 ¥18,499」のパターンから最安値を抽出
         matches = re.findall(r'[¥￥]\s*([\d,]{4,6})\s*[~〜]', content)
         if not matches:
             matches = re.findall(r'[¥￥]\s*([\d,]{4,6})', content)
         for m in matches:
             val = int(m.replace(',', ''))
-            # 定価（5,500円や7,200円）を除外して実際の出品最安値を拾う
             if val in (5500, 7200):
                 continue
             if target["min_valid_price"] <= val <= target["max_valid_price"]:
@@ -179,14 +190,12 @@ async def scrape_homura_single(page, url, target):
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
         await page.wait_for_timeout(3500)
         content = await page.inner_text("body")
-        # 「買取価格（税込）： 18,500 円」や「買取金額（税込） ¥ 18,500」を最優先で探す
         m = re.search(r'買取(?:価格|金額)[^0-9]{0,20}([\d,]{4,6})', content)
         if m:
             val = int(m.group(1).replace(',', ''))
             if target["min_valid_price"] <= val <= target["max_valid_price"]:
                 return val
 
-        # 予備：ページ冒頭付近の「〇〇円」を探す
         for m2 in re.findall(r'([\d,]{4,6})\s*円', content[:1500]):
             val = int(m2.replace(',', ''))
             if target["min_valid_price"] <= val <= target["max_valid_price"]:
@@ -240,6 +249,8 @@ def check_and_notify(history, new_entry):
 
 async def main():
     now_str = datetime.now(JST).strftime("%Y-%m-%d %H:%M")
+    usd_rate = get_usd_jpy_rate()
+
     history = []
     if os.path.exists(DATA_FILE):
         try:
@@ -266,7 +277,7 @@ async def main():
 
         for target in TARGETS:
             print(f"=== Fetching {target['name']} ===")
-            m_with, m_without = await scrape_mercari(page, target)
+            m_with, m_without = await scrape_mercari(page, target, usd_rate)
 
             s_with = await scrape_snkrdunk_single(page, target["snkrdunk_with_url"], target)
             s_without = await scrape_snkrdunk_single(page, target["snkrdunk_without_url"], target)
