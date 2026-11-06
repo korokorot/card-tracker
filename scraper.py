@@ -14,7 +14,6 @@ TARGETS = [
     {
         "id": "30th_celebration",
         "name": "MEGA 拡張パック「30th CELEBRATION」",
-        # 英語表記と日本語表記の両方で検索して合算するリスト形式に対応
         "kw_general": ["30th CELEBRATION BOX", "30周年 拡張パック BOX"],
         "kw_without": ["30th CELEBRATION シュリンクなし", "30周年 拡張パック シュリンクなし"],
         "must_words": ["30TH", "30周年", "CELEBRATION"],
@@ -27,7 +26,7 @@ TARGETS = [
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/881427",
         "homura_with_url": "https://kaitori-homura.com/products/7237",
         "homura_without_url": "https://kaitori-homura.com/products/7238",
-        "min_valid_price": 15500,  # デッキセットや9種セットの混入を防ぐため引き上げ
+        "min_valid_price": 15500,
         "max_valid_price": 35000
     },
     {
@@ -161,12 +160,41 @@ COMMON_NG_WORDS = [
 ]
 
 NO_SHRINK_WORDS = ["シュリンクなし", "シュリンク無し", "シュリなし", "シュリ無し", "ペリペリ", "シュリンク無", "シュリ無"]
-
 RETAIL_PRICES = (2090, 5400, 5500, 6000, 7200, 10800)
 
 DATA_FILE = "data.json"
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK_URL", "")
 ALERT_THRESHOLD = 1000
+
+
+# === Yahoo!フリマの疎通テスト用関数 ===
+async def test_yahoo_fleamarket(page):
+    kw = quote("ストームエメラルダ BOX")
+    test_url = f"https://paypayfleamarket.yahoo.co.jp/search/{kw}?open=1"
+    print("\n----------------------------------------")
+    print(">>> [Yahoo Test] 開始: Yahoo!フリマへのアクセス検証")
+    try:
+        response = await page.goto(test_url, wait_until="domcontentloaded", timeout=30000)
+        status_code = response.status if response else "None"
+        await page.wait_for_timeout(4000)
+        title = await page.title()
+        content = await page.inner_text("body")
+        
+        # 商品リンクらしき要素をカウント
+        items = await page.query_selector_all('a[href*="/item/"]')
+        print(f">>> [Yahoo Test] HTTPステータス: {status_code}")
+        print(f">>> [Yahoo Test] ページタイトル: {title}")
+        print(f">>> [Yahoo Test] 本文文字数: {len(content)} / 検出商品数: {len(items)}")
+        
+        if "エラー" in title or "Forbidden" in title or len(content) < 500:
+            print(">>> [Yahoo Test] 判定: アクセス制限またはブロックの可能性が高いです")
+        else:
+            # サンプルの価格抽出テスト
+            prices = re.findall(r'[¥￥]\s*([\d,]{4,6})', content[:2000])
+            print(f">>> [Yahoo Test] 判定: アクセス成功！ 検出サンプル価格: {prices[:5]}")
+    except Exception as e:
+        print(f">>> [Yahoo Test] エラー発生: {e}")
+    print("----------------------------------------\n")
 
 
 def get_usd_jpy_rate():
@@ -179,19 +207,15 @@ def get_usd_jpy_rate():
 
 def classify_mercari_item(title, target):
     t_upper = title.upper()
-
     if not any(w.upper() in t_upper for w in target["must_words"]):
         return None
-
     for ng in COMMON_NG_WORDS + target["extra_ng_words"]:
         if ng.upper() in t_upper:
             return None
-
     if re.search(r'(?<!\d)[2-9２-９]\s*(BOX|ボックス|箱|個|点|セット)', t_upper):
         return None
     if "セット" in t_upper and not any(ok in t_upper for ok in ["ローダー", "ケース"]):
         return None
-
     if any(w in title for w in NO_SHRINK_WORDS):
         return "without_shrink"
     return "with_shrink"
@@ -408,6 +432,9 @@ async def main():
         )
         await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         page = await context.new_page()
+
+        # === ここでYahoo!フリマの疎通テストを1回だけ実行 ===
+        await test_yahoo_fleamarket(page)
 
         for target in TARGETS:
             print(f"=== Fetching {target['name']} ===")
