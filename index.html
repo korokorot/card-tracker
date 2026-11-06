@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ポケカBOX相場ダッシュボード</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --sub: #94a3b8;
+      --accent: #38bdf8;
+      --up: #ef4444;
+      --down: #22c55e;
+    }
+    body {
+      margin: 0; padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    h1 { font-size: 18px; margin: 0 0 4px 0; }
+    .updated { font-size: 12px; color: var(--sub); margin-bottom: 16px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; }
+    .tab {
+      flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #334155;
+      background: var(--card); color: var(--sub); font-weight: bold; font-size: 13px;
+      text-align: center; cursor: pointer; white-space: nowrap;
+    }
+    .tab.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .card { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid #334155; }
+    .card-title { font-size: 11px; color: var(--sub); margin-bottom: 6px; }
+    .price { font-size: 18px; font-weight: bold; }
+    .diff { font-size: 12px; margin-left: 6px; font-weight: bold; }
+    .diff.up { color: var(--up); }
+    .diff.down { color: var(--down); }
+    .diff.even { color: var(--sub); }
+    .chart-box { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; background: var(--card); border-radius: 12px; overflow: hidden; }
+    th, td { padding: 8px 6px; text-align: right; border-bottom: 1px solid #334155; }
+    th:first-child, td:first-child { text-align: left; }
+    th { background: #334155; color: var(--text); font-size: 11px; }
+  </style>
+</head>
+<body>
+
+  <h1>📦 ポケカBOX相場トラッカー</h1>
+  <div class="updated" id="last-updated">データ読込中...</div>
+
+  <div class="tabs" id="box-tabs"></div>
+
+  <div class="grid" id="price-cards"></div>
+
+  <div class="chart-box">
+    <div class="card-title">📈 価格推移グラフ（シュリンク有・無）</div>
+    <canvas id="priceChart" height="220"></canvas>
+  </div>
+
+  <div class="card-title" style="margin-bottom:6px;">🕒 過去の記録履歴（直近10回）</div>
+  <div style="overflow-x:auto;">
+    <table id="history-table">
+      <thead>
+        <tr>
+          <th>日時</th>
+          <th>メルカリ<br>(有/無)</th>
+          <th>スニダン<br>(有/無)</th>
+          <th>ホムラ<br>(有/無)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+<script>
+let rawData = [];
+let currentBoxId = "30th_celebration";
+let chartInstance = null;
+
+const BOX_LABELS = {
+  "30th_celebration": "30th CELEBRATION",
+  "mega_dream_ex": "MEGAドリームex"
+};
+
+function fmt(val) {
+  return val ? val.toLocaleString() + "円" : "―";
+}
+
+function calcDiff(curr, prev) {
+  if (!curr || !prev) return `<span class="diff even">±0</span>`;
+  const d = curr - prev;
+  if (d > 0) return `<span class="diff up">+${d.toLocaleString()}</span>`;
+  if (d < 0) return `<span class="diff down">${d.toLocaleString()}</span>`;
+  return `<span class="diff even">±0</span>`;
+}
+
+function renderTabs() {
+  const container = document.getElementById("box-tabs");
+  container.innerHTML = "";
+  Object.keys(BOX_LABELS).forEach(id => {
+    const btn = document.createElement("div");
+    btn.className = "tab" + (id === currentBoxId ? " active" : "");
+    btn.textContent = BOX_LABELS[id];
+    btn.onclick = () => { currentBoxId = id; renderAll(); };
+    container.appendChild(btn);
+  });
+}
+
+function renderAll() {
+  renderTabs();
+  if (!rawData.length) return;
+
+  const latest = rawData[rawData.length - 1];
+  const prev = rawData.length > 1 ? rawData[rawData.length - 2] : latest;
+  document.getElementById("last-updated").textContent = `最終更新: ${latest.timestamp}`;
+
+  const currBox = latest.boxes[currentBoxId] || {};
+  const prevBox = prev.boxes[currentBoxId] || {};
+
+  const items = [
+    { label: "メルカリ (シュリンク有)", key: "mercari_with" },
+    { label: "メルカリ (シュリンク無)", key: "mercari_without" },
+    { label: "スニダン (シュリンク有)", key: "snkrdunk_with" },
+    { label: "スニダン (シュリンク無)", key: "snkrdunk_without" },
+    { label: "買取ホムラ (シュリンク有)", key: "homura_with" },
+    { label: "買取ホムラ (シュリンク無)", key: "homura_without" },
+  ];
+
+  const cardsContainer = document.getElementById("price-cards");
+  cardsContainer.innerHTML = items.map(item => `
+    <div class="card">
+      <div class="card-title">${item.label}</div>
+      <div>
+        <span class="price">${fmt(currBox[item.key])}</span>
+        ${calcDiff(currBox[item.key], prevBox[item.key])}
+      </div>
+    </div>
+  `).join("");
+
+  // グラフ描画
+  const labels = rawData.map(d => d.timestamp.slice(5, 16));
+  const datasets = [
+    { label: "メルカリ(有)", key: "mercari_with", color: "#ef4444", dash: [] },
+    { label: "メルカリ(無)", key: "mercari_without", color: "#f87171", dash: [4,4] },
+    { label: "スニダン(有)", key: "snkrdunk_with", color: "#38bdf8", dash: [] },
+    { label: "ホムラ買取(有)", key: "homura_with", color: "#22c55e", dash: [] },
+  ].map(ds => ({
+    label: ds.label,
+    data: rawData.map(d => (d.boxes[currentBoxId] || {})[ds.key] || null),
+    borderColor: ds.color,
+    borderDash: ds.dash,
+    tension: 0.2,
+    pointRadius: 2
+  }));
+
+  const ctx = document.getElementById("priceChart").getContext("2d");
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#f8fafc", font: { size: 10 } } } },
+      scales: {
+        x: { ticks: { color: "#94a3b8", font: { size: 10 } } },
+        y: { ticks: { color: "#94a3b8", font: { size: 10 } } }
+      }
+    }
+  });
+
+  // 履歴テーブル
+  const tbody = document.querySelector("#history-table tbody");
+  tbody.innerHTML = rawData.slice(-10).reverse().map(d => {
+    const b = d.boxes[currentBoxId] || {};
+    return `
+      <tr>
+        <td>${d.timestamp.slice(5, 16)}</td>
+        <td>${fmt(b.mercari_with)}<br><span style="color:#94a3b8">${fmt(b.mercari_without)}</span></td>
+        <td>${fmt(b.snkrdunk_with)}<br><span style="color:#94a3b8">${fmt(b.snkrdunk_without)}</span></td>
+        <td>${fmt(b.homura_with)}<br><span style="color:#94a3b8">${fmt(b.homura_without)}</span></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+fetch("data.json?t=" + Date.now())
+  .then(r => r.json())
+  .then(data => { rawData = data; renderAll(); })
+  .catch(() => {
+    document.getElementById("last-updated").textContent = "まだデータがありません（初回実行をお待ちください）";
+  });
+</script>
+</body>
+</html>
