@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ポケカBOX相場ダッシュボード</title>
+  <title>ポケカBOX相場</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -16,52 +16,107 @@
       --down: #22c55e;
       --border: #334155;
     }
+    * { box-sizing: border-box; }
     body {
-      margin: 0; padding: 12px;
+      margin: 0; padding: 8px;
       font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
       background: var(--bg); color: var(--text);
     }
-    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    h1 { font-size: 17px; margin: 0; }
-    .updated { font-size: 11px; color: var(--sub); margin-bottom: 12px; }
-    .section-title { font-size: 14px; font-weight: bold; margin: 20px 0 8px 0; color: var(--accent); display: flex; align-items: center; justify-content: space-between; }
+    .header-row {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 6px; margin-bottom: 4px;
+    }
+    h1 { font-size: 15px; margin: 0; white-space: nowrap; }
+    .updated { font-size: 10px; color: var(--sub); margin-bottom: 8px; }
+    .section-title { font-size: 14px; font-weight: bold; margin: 18px 0 8px 0; color: var(--accent); }
 
-    /* シュリンク有無の切り替えスイッチ */
-    .mode-switch { display: inline-flex; background: var(--card); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
-    .mode-btn { padding: 5px 10px; font-size: 11px; font-weight: bold; color: var(--sub); cursor: pointer; }
+    .mode-switch {
+      display: inline-flex; background: var(--card); border-radius: 8px;
+      border: 1px solid var(--border); overflow: hidden; flex-shrink: 0;
+    }
+    .mode-btn {
+      padding: 5px 8px; font-size: 11px; font-weight: bold;
+      color: var(--sub); cursor: pointer; white-space: nowrap;
+    }
     .mode-btn.active { background: var(--accent); color: #0f172a; }
 
-    /* 上部：一覧比較テーブル */
-    .summary-wrap { overflow-x: auto; background: var(--card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; }
-    .summary-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }
-    .summary-table th, .summary-table td { padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
-    .summary-table th:first-child, .summary-table td:first-child { text-align: left; position: sticky; left: 0; background: var(--card); z-index: 1; border-right: 1px solid var(--border); }
-    .summary-table th { background: #1e293b; color: var(--sub); font-size: 11px; border-bottom: 2px solid var(--border); }
-    .cat-row td { background: #172033 !important; color: #f59e0b; font-weight: bold; font-size: 11px; padding: 6px 10px; text-align: left !important; }
+    /* 上部：スマホ1画面に収まる5列比較テーブル */
+    .summary-wrap {
+      background: var(--card); border-radius: 10px;
+      border: 1px solid var(--border); margin-bottom: 18px; overflow: hidden;
+    }
+    .summary-table {
+      width: 100%; border-collapse: collapse; table-layout: fixed;
+    }
+    .summary-table th, .summary-table td {
+      padding: 7px 2px; text-align: right; border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .summary-table th:first-child, .summary-table td:first-child {
+      text-align: left; padding-left: 6px; width: 32%;
+      border-right: 1px solid var(--border);
+    }
+    .summary-table th:not(:first-child), .summary-table td:not(:first-child) {
+      width: 17%;
+    }
+    .summary-table th {
+      background: #1e293b; color: var(--sub); font-size: 10px;
+      border-bottom: 2px solid var(--border); white-space: nowrap;
+    }
+    .cat-row td {
+      background: #172033 !important; color: #f59e0b; font-weight: bold;
+      font-size: 10px; padding: 4px 6px !important; text-align: left !important;
+      border-right: none !important;
+    }
     .box-row { cursor: pointer; transition: background 0.15s; }
-    .box-row:hover { background: #26334d; }
-    .box-name-cell { font-weight: bold; color: var(--text); }
-    .retail-cell { color: var(--sub); font-size: 11px; }
-    .profit-pos { color: #10b981; font-weight: bold; }
-    .profit-neg { color: #ef4444; font-weight: bold; }
-    .best-badge { background: rgba(56, 189, 248, 0.15); border-radius: 4px; padding: 2px 4px; color: #38bdf8; font-weight: bold; }
-    .mini-diff { font-size: 10px; display: block; }
+    .box-row:active, .box-row:hover { background: #26334d; }
+
+    .box-title {
+      font-weight: bold; font-size: 11px; color: var(--text);
+      line-height: 1.2; margin-bottom: 2px; word-break: keep-all;
+    }
+    .box-meta {
+      font-size: 9px; color: var(--sub); line-height: 1.1; white-space: nowrap;
+    }
+    .profit-pos { color: #10b981; font-weight: bold; margin-left: 2px; }
+    .profit-neg { color: #ef4444; font-weight: bold; margin-left: 2px; }
+
+    .p-val { font-size: 11px; font-weight: bold; display: block; white-space: nowrap; }
+    .best-badge {
+      background: rgba(56, 189, 248, 0.15); border-radius: 3px;
+      padding: 1px 2px; color: #38bdf8; font-weight: bold; font-size: 11px;
+      display: inline-block; white-space: nowrap;
+    }
+    .mini-diff { font-size: 8px; display: block; margin-top: 1px; white-space: nowrap; }
     .up { color: var(--up); }
     .down { color: var(--down); }
     .even { color: var(--sub); }
 
+    @media (min-width: 600px) {
+      body { padding: 16px; max-width: 960px; margin: 0 auto; }
+      h1 { font-size: 18px; }
+      .summary-table th, .summary-table td { padding: 10px 8px; }
+      .box-title { font-size: 13px; }
+      .box-meta { font-size: 11px; }
+      .p-val, .best-badge { font-size: 13px; }
+      .mini-diff { font-size: 10px; }
+    }
+
     /* 下部：個別詳細エリア */
-    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-    .tab { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--sub); font-weight: bold; font-size: 11px; cursor: pointer; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+    .tab {
+      padding: 6px 9px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--card); color: var(--sub); font-weight: bold; font-size: 11px; cursor: pointer;
+    }
     .tab.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-    .card { background: var(--card); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); }
+    .card { background: var(--card); padding: 10px; border-radius: 10px; border: 1px solid var(--border); }
     .card-title { font-size: 11px; color: var(--sub); margin-bottom: 4px; }
-    .price { font-size: 17px; font-weight: bold; }
-    .sub-note { font-size: 10px; color: var(--sub); margin-top: 3px; }
+    .price { font-size: 15px; font-weight: bold; }
+    .sub-note { font-size: 9px; color: var(--sub); margin-top: 3px; }
     .chart-box { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; }
-    .hist-table { width: 100%; border-collapse: collapse; font-size: 11px; background: var(--card); border-radius: 12px; overflow: hidden; }
-    .hist-table th, .hist-table td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); }
+    .hist-table { width: 100%; border-collapse: collapse; font-size: 10px; background: var(--card); border-radius: 12px; overflow: hidden; }
+    .hist-table th, .hist-table td { padding: 7px 4px; text-align: right; border-bottom: 1px solid var(--border); }
     .hist-table th:first-child, .hist-table td:first-child { text-align: left; }
     .hist-table th { background: #334155; color: var(--text); }
   </style>
@@ -69,25 +124,24 @@
 <body>
 
   <div class="header-row">
-    <h1>📦 ポケカBOX相場ダッシュボード</h1>
+    <h1>📦 ポケカBOX相場</h1>
     <div class="mode-switch">
       <div class="mode-btn active" id="btn-with" onclick="setShrinkMode('with')">シュリンク有</div>
       <div class="mode-btn" id="btn-without" onclick="setShrinkMode('without')">シュリンク無</div>
     </div>
   </div>
-  <div class="updated" id="last-updated">データ読込中...（※表の行をタップすると下の推移グラフが切り替わります）</div>
+  <div class="updated" id="last-updated">データ読込中...</div>
 
-  <!-- 一番上：全BOX一覧表（メルカリ・スニダン・ホムラ順） -->
+  <!-- 一番上：スマホ1画面に収まる5列一覧表 -->
   <div class="summary-wrap">
     <table class="summary-table" id="summary-table">
       <thead>
         <tr>
-          <th>商品名</th>
-          <th>定価</th>
-          <th>ホムラ差益</th>
+          <th>商品名 / 定価(差益)</th>
           <th>メルカリ</th>
+          <th>Yahoo!</th>
           <th>スニダン</th>
-          <th>買取ホムラ</th>
+          <th>ホムラ</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -110,9 +164,10 @@
       <thead>
         <tr>
           <th>日時</th>
-          <th>メルカリ<br>(有 / 無)</th>
-          <th>スニダン<br>(有 / 無)</th>
-          <th>買取ホムラ<br>(有 / 無)</th>
+          <th>メルカリ<br>(有/無)</th>
+          <th>Yahoo!<br>(有/無)</th>
+          <th>スニダン<br>(有/無)</th>
+          <th>ホムラ<br>(有/無)</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -121,21 +176,20 @@
 
 <script>
 let rawData = [];
-let shrinkMode = "with"; // "with" or "without"
+let shrinkMode = "with";
 let currentBoxId = "30th_celebration";
 let chartInstance = null;
 
-// 発売日順（通常BOX） → スペシャルBOX → 9種セット の定義
 const BOX_MASTER = [
-  { id: "30th_celebration", name: "MEGA 拡張パック「30th CELEBRATION」", short: "30th BOX", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 7200 },
-  { id: "storm_emeralda", name: "MEGA 拡張パック「ストームエメラルダ」", short: "ストームエメラルダ", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 6000 },
-  { id: "abyss_eye", name: "MEGA 拡張パック「アビスアイ」", short: "アビスアイ", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 6000 },
-  { id: "munikis_zero", name: "MEGA 拡張パック「ムニキスゼロ」", short: "ムニキスゼロ", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 5400 },
-  { id: "mega_dream_ex", name: "MEGA ハイクラスパック「MEGAドリームex」", short: "MEGAドリームex", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 5500 },
-  { id: "sp_box_tohoku", name: "スペシャルBOX ポケモンセンタートウホク", short: "SP トウホク", cat: "スペシャルBOX・記念セット", retail: 2090 },
-  { id: "sp_box_hiroshima", name: "スペシャルBOX ポケモンセンターヒロシマ", short: "SP ヒロシマ", cat: "スペシャルBOX・記念セット", retail: 2090 },
-  { id: "sp_box_fukuoka", name: "スペシャルBOX ポケモンセンターフクオカ", short: "SP フクオカ", cat: "スペシャルBOX・記念セット", retail: 2090 },
-  { id: "30th_card_set_9", name: "30th CELEBRATION カードセット 9種セット", short: "30th 9種セット", cat: "スペシャルBOX・記念セット", retail: 10800 }
+  { id: "30th_celebration", name: "30th CELEBRATION", short: "30th BOX", cat: "MEGA 拡張・ハイクラス（発売日順）", retail: 7200 },
+  { id: "storm_emeralda", name: "ストームエメラルダ", short: "ストームエメラルダ", cat: "MEGA 拡張・ハイクラス（発売日順）", retail: 6000 },
+  { id: "abyss_eye", name: "アビスアイ", short: "アビスアイ", cat: "MEGA 拡張・ハイクラス（発売日順）", retail: 6000 },
+  { id: "munikis_zero", name: "ムニキスゼロ", short: "ムニキスゼロ", cat: "MEGA 拡張・ハイクラス（発売日順）", retail: 5400 },
+  { id: "mega_dream_ex", name: "MEGAドリームex", short: "MEGAドリームex", cat: "MEGA 拡張・ハイクラス（発売日順）", retail: 5500 },
+  { id: "sp_box_tohoku", name: "SPBOX トウホク", short: "SP トウホク", cat: "スペシャルBOX・記念セット", retail: 2090 },
+  { id: "sp_box_hiroshima", name: "SPBOX ヒロシマ", short: "SP ヒロシマ", cat: "スペシャルBOX・記念セット", retail: 2090 },
+  { id: "sp_box_fukuoka", name: "SPBOX フクオカ", short: "SP フクオカ", cat: "スペシャルBOX・記念セット", retail: 2090 },
+  { id: "30th_card_set_9", name: "30th 9種セット", short: "30th 9種セット", cat: "スペシャルBOX・記念セット", retail: 10800 }
 ];
 
 function fmt(val) {
@@ -171,32 +225,34 @@ function renderSummaryTable(latest, prev) {
 
   BOX_MASTER.forEach(item => {
     if (item.cat !== lastCat) {
-      html += `<tr class="cat-row"><td colspan="6">${item.cat}</td></tr>`;
+      html += `<tr class="cat-row"><td colspan="5">${item.cat}</td></tr>`;
       lastCat = item.cat;
     }
     const currB = (latest.boxes && latest.boxes[item.id]) || {};
     const prevB = (prev.boxes && prev.boxes[item.id]) || {};
 
     const mVal = currB["mercari" + suffix];
+    const yVal = currB["yahoo" + suffix];
     const sVal = currB["snkrdunk" + suffix];
     const hVal = currB["homura" + suffix];
 
-    // 差益計算（買取ホムラ － 定価）
-    let profitHtml = "―";
+    let profitHtml = "";
     if (hVal && item.retail) {
       const diff = hVal - item.retail;
       const sign = diff >= 0 ? "+" : "-";
       const cls = diff >= 0 ? "profit-pos" : "profit-neg";
-      profitHtml = `<span class="${cls}">${sign}¥${Math.abs(diff).toLocaleString()}</span>`;
+      profitHtml = `<span class="${cls}">(${sign}¥${Math.abs(diff).toLocaleString()})</span>`;
     }
 
     html += `
       <tr class="box-row" onclick="selectBoxFromTable('${item.id}')">
-        <td class="box-name-cell">${item.name}</td>
-        <td class="retail-cell">¥${item.retail.toLocaleString()}</td>
-        <td>${profitHtml}</td>
-        <td><strong>${fmt(mVal)}</strong>${fmtDiffInline(mVal, prevB["mercari" + suffix])}</td>
-        <td><strong>${fmt(sVal)}</strong>${fmtDiffInline(sVal, prevB["snkrdunk" + suffix])}</td>
+        <td>
+          <div class="box-title">${item.name}</div>
+          <div class="box-meta">定¥${item.retail.toLocaleString()}${profitHtml}</div>
+        </td>
+        <td><span class="p-val">${fmt(mVal)}</span>${fmtDiffInline(mVal, prevB["mercari" + suffix])}</td>
+        <td><span class="p-val">${fmt(yVal)}</span>${fmtDiffInline(yVal, prevB["yahoo" + suffix])}</td>
+        <td><span class="p-val">${fmt(sVal)}</span>${fmtDiffInline(sVal, prevB["snkrdunk" + suffix])}</td>
         <td><span class="best-badge">${fmt(hVal)}</span>${fmtDiffInline(hVal, prevB["homura" + suffix])}</td>
       </tr>
     `;
@@ -233,15 +289,17 @@ function renderAll() {
   document.getElementById("chart-title").textContent = `📈 ${masterInfo.name || ""} 推移（定価: ¥${(masterInfo.retail||0).toLocaleString()}）`;
 
   const mWithNet = currBox.mercari_with ? `手数料10%引: ¥${Math.round(currBox.mercari_with * 0.9).toLocaleString()}` : "";
-  const mWithoutNet = currBox.mercari_without ? `手数料10%引: ¥${Math.round(currBox.mercari_without * 0.9).toLocaleString()}` : "";
+  const yWithNet = currBox.yahoo_with ? `手数料5%引: ¥${Math.round(currBox.yahoo_with * 0.95).toLocaleString()}` : "";
 
   const items = [
-    { label: "メルカリ (シュリンク有)", key: "mercari_with", note: mWithNet },
-    { label: "メルカリ (シュリンク無)", key: "mercari_without", note: mWithoutNet },
-    { label: "スニダン (シュリンク有)", key: "snkrdunk_with", note: "" },
-    { label: "スニダン (シュリンク無)", key: "snkrdunk_without", note: "" },
-    { label: "買取ホムラ (シュリンク有)", key: "homura_with", note: "手数料なし即金" },
-    { label: "買取ホムラ (シュリンク無)", key: "homura_without", note: "手数料なし即金" },
+    { label: "メルカリ (有)", key: "mercari_with", note: mWithNet },
+    { label: "メルカリ (無)", key: "mercari_without", note: "" },
+    { label: "Yahoo!フリマ (有)", key: "yahoo_with", note: yWithNet },
+    { label: "Yahoo!フリマ (無)", key: "yahoo_without", note: "" },
+    { label: "スニダン (有)", key: "snkrdunk_with", note: "" },
+    { label: "スニダン (無)", key: "snkrdunk_without", note: "" },
+    { label: "買取ホムラ (有)", key: "homura_with", note: "手数料なし即金" },
+    { label: "買取ホムラ (無)", key: "homura_without", note: "手数料なし即金" },
   ];
 
   document.getElementById("price-cards").innerHTML = items.map(item => `
@@ -258,7 +316,7 @@ function renderAll() {
   const labels = rawData.map(d => d.timestamp.slice(5, 16));
   const datasets = [
     { label: "メルカリ(有)", key: "mercari_with", color: "#ef4444", dash: [] },
-    { label: "メルカリ(無)", key: "mercari_without", color: "#f87171", dash: [4,4] },
+    { label: "Yahoo!(有)", key: "yahoo_with", color: "#f59e0b", dash: [] },
     { label: "スニダン(有)", key: "snkrdunk_with", color: "#38bdf8", dash: [] },
     { label: "ホムラ買取(有)", key: "homura_with", color: "#22c55e", dash: [] },
   ].map(ds => ({
@@ -292,6 +350,7 @@ function renderAll() {
       <tr>
         <td>${d.timestamp.slice(5, 16)}</td>
         <td>${fmt(b.mercari_with)}<br><span style="color:#94a3b8">${fmt(b.mercari_without)}</span></td>
+        <td>${fmt(b.yahoo_with)}<br><span style="color:#94a3b8">${fmt(b.yahoo_without)}</span></td>
         <td>${fmt(b.snkrdunk_with)}<br><span style="color:#94a3b8">${fmt(b.snkrdunk_without)}</span></td>
         <td>${fmt(b.homura_with)}<br><span style="color:#94a3b8">${fmt(b.homura_without)}</span></td>
       </tr>
