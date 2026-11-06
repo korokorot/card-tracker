@@ -161,5 +161,91 @@
         "homura_without": 10800
       }
     }
+  },
+  {
+    "timestamp": "2026-11-06 14:04",
+    "boxes": {
+      "30th_celebration": {
+        "name": "MEGA 拡張パック「30th CELEBRATION」",
+        "mercari_with": 16050,
+        "mercari_without": null,
+        "snkrdunk_with": 21000,
+        "snkrdunk_without": 18000,
+        "homura_with": 21000,
+        "homura_without": 15000
+      },
+      "storm_emeralda": {
+        "name": "MEGA 拡張パック「ストームエメラルダ」",
+        "mercari_with": 9400,
+        "mercari_without": 7500,
+        "snkrdunk_with": 9000,
+        "snkrdunk_without": 7400,
+        "homura_with": 8600,
+        "homura_without": 7000
+      },
+      "abyss_eye": {
+        "name": "MEGA 拡張パック「アビスアイ」",
+        "mercari_with": 8400,
+        "mercari_without": 7800,
+        "snkrdunk_with": 7199,
+        "snkrdunk_without": 6950,
+        "homura_with": 7900,
+        "homura_without": 6500
+      },
+      "munikis_zero": {
+        "name": "MEGA 拡張パック「ムニキスゼロ」",
+        "mercari_with": 8400,
+        "mercari_without": 7500,
+        "snkrdunk_with": 7580,
+        "snkrdunk_without": 7400,
+        "homura_with": 7300,
+        "homura_without": 6600
+      },
+      "mega_dream_ex": {
+        "name": "MEGA ハイクラスパック「MEGAドリームex」",
+        "mercari_with": 12600,
+        "mercari_without": 10750,
+        "snkrdunk_with": 12300,
+        "snkrdunk_without": 10500,
+        "homura_with": 11900,
+        "homura_without": 10800
+      },
+      "sp_box_tohoku": {
+        "name": "スペシャルBOX ポケモンセンタートウホク",
+        "mercari_with": 13100,
+        "mercari_without": null,
+        "snkrdunk_with": 12630,
+        "snkrdunk_without": null,
+        "homura_with": 10500,
+        "homura_without": null
+      },
+      "sp_box_hiroshima": {
+        "name": "スペシャルBOX ポケモンセンターヒロシマ",
+        "mercari_with": 14100,
+        "mercari_without": null,
+        "snkrdunk_with": 13899,
+        "snkrdunk_without": null,
+        "homura_with": 11000,
+        "homura_without": null
+      },
+      "sp_box_fukuoka": {
+        "name": "スペシャルBOX ポケモンセンターフクオカ",
+        "mercari_with": 13600,
+        "mercari_without": null,
+        "snkrdunk_with": 12300,
+        "snkrdunk_without": null,
+        "homura_with": 10000,
+        "homura_without": null
+      },
+      "30th_card_set_9": {
+        "name": "30th CELEBRATION カードセット 9種セット",
+        "mercari_with": null,
+        "mercari_without": null,
+        "snkrdunk_with": null,
+        "snkrdunk_without": null,
+        "homura_with": 14300,
+        "homura_without": null
+      }
+    }
   }
 ]
