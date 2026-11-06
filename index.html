@@ -14,59 +14,105 @@
       --accent: #38bdf8;
       --up: #ef4444;
       --down: #22c55e;
+      --border: #334155;
     }
     body {
-      margin: 0; padding: 16px;
+      margin: 0; padding: 12px;
       font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
       background: var(--bg); color: var(--text);
     }
-    h1 { font-size: 18px; margin: 0 0 4px 0; }
-    .updated { font-size: 12px; color: var(--sub); margin-bottom: 16px; }
-    .tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; }
-    .tab {
-      flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #334155;
-      background: var(--card); color: var(--sub); font-weight: bold; font-size: 13px;
-      text-align: center; cursor: pointer; white-space: nowrap;
-    }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    h1 { font-size: 17px; margin: 0; }
+    .updated { font-size: 11px; color: var(--sub); margin-bottom: 12px; }
+    .section-title { font-size: 14px; font-weight: bold; margin: 20px 0 8px 0; color: var(--accent); display: flex; align-items: center; justify-content: space-between; }
+
+    /* シュリンク有無の切り替えスイッチ */
+    .mode-switch { display: inline-flex; background: var(--card); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+    .mode-btn { padding: 5px 10px; font-size: 11px; font-weight: bold; color: var(--sub); cursor: pointer; }
+    .mode-btn.active { background: var(--accent); color: #0f172a; }
+
+    /* 上部：一覧比較テーブル */
+    .summary-wrap { overflow-x: auto; background: var(--card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; }
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }
+    .summary-table th, .summary-table td { padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .summary-table th:first-child, .summary-table td:first-child { text-align: left; position: sticky; left: 0; background: var(--card); z-index: 1; border-right: 1px solid var(--border); }
+    .summary-table th { background: #1e293b; color: var(--sub); font-size: 11px; border-bottom: 2px solid var(--border); }
+    .cat-row td { background: #172033 !important; color: #f59e0b; font-weight: bold; font-size: 11px; padding: 6px 10px; text-align: left !important; }
+    .box-row { cursor: pointer; transition: background 0.15s; }
+    .box-row:hover { background: #26334d; }
+    .box-name-cell { font-weight: bold; color: var(--text); }
+    .retail-cell { color: var(--sub); font-size: 11px; }
+    .profit-pos { color: #10b981; font-weight: bold; }
+    .profit-neg { color: #ef4444; font-weight: bold; }
+    .best-badge { background: rgba(56, 189, 248, 0.15); border-radius: 4px; padding: 2px 4px; color: #38bdf8; font-weight: bold; }
+    .mini-diff { font-size: 10px; display: block; }
+    .up { color: var(--up); }
+    .down { color: var(--down); }
+    .even { color: var(--sub); }
+
+    /* 下部：個別詳細エリア */
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .tab { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--sub); font-weight: bold; font-size: 11px; cursor: pointer; }
     .tab.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-    .card { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid #334155; }
-    .card-title { font-size: 11px; color: var(--sub); margin-bottom: 6px; }
-    .price { font-size: 18px; font-weight: bold; }
-    .diff { font-size: 12px; margin-left: 6px; font-weight: bold; }
-    .diff.up { color: var(--up); }
-    .diff.down { color: var(--down); }
-    .diff.even { color: var(--sub); }
-    .chart-box { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 16px; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; background: var(--card); border-radius: 12px; overflow: hidden; }
-    th, td { padding: 8px 6px; text-align: right; border-bottom: 1px solid #334155; }
-    th:first-child, td:first-child { text-align: left; }
-    th { background: #334155; color: var(--text); font-size: 11px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .card { background: var(--card); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); }
+    .card-title { font-size: 11px; color: var(--sub); margin-bottom: 4px; }
+    .price { font-size: 17px; font-weight: bold; }
+    .sub-note { font-size: 10px; color: var(--sub); margin-top: 3px; }
+    .chart-box { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; }
+    .hist-table { width: 100%; border-collapse: collapse; font-size: 11px; background: var(--card); border-radius: 12px; overflow: hidden; }
+    .hist-table th, .hist-table td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); }
+    .hist-table th:first-child, .hist-table td:first-child { text-align: left; }
+    .hist-table th { background: #334155; color: var(--text); }
   </style>
 </head>
 <body>
 
-  <h1>📦 ポケカBOX相場トラッカー</h1>
-  <div class="updated" id="last-updated">データ読込中...</div>
+  <div class="header-row">
+    <h1>📦 ポケカBOX相場ダッシュボード</h1>
+    <div class="mode-switch">
+      <div class="mode-btn active" id="btn-with" onclick="setShrinkMode('with')">シュリンク有</div>
+      <div class="mode-btn" id="btn-without" onclick="setShrinkMode('without')">シュリンク無</div>
+    </div>
+  </div>
+  <div class="updated" id="last-updated">データ読込中...（※表の行をタップすると下の推移グラフが切り替わります）</div>
 
+  <!-- 一番上：全BOX一覧表（メルカリ・スニダン・ホムラ順） -->
+  <div class="summary-wrap">
+    <table class="summary-table" id="summary-table">
+      <thead>
+        <tr>
+          <th>商品名</th>
+          <th>定価</th>
+          <th>ホムラ差益</th>
+          <th>メルカリ</th>
+          <th>スニダン</th>
+          <th>買取ホムラ</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- 下部：スワイプで見る個別グラフ＆履歴 -->
+  <div class="section-title" id="detail-section">📊 個別BOX 相場推移＆履歴</div>
   <div class="tabs" id="box-tabs"></div>
-
   <div class="grid" id="price-cards"></div>
 
   <div class="chart-box">
-    <div class="card-title">📈 価格推移グラフ（シュリンク有・無）</div>
-    <canvas id="priceChart" height="220"></canvas>
+    <div class="card-title" id="chart-title">📈 価格推移グラフ</div>
+    <canvas id="priceChart" height="210"></canvas>
   </div>
 
   <div class="card-title" style="margin-bottom:6px;">🕒 過去の記録履歴（直近10回）</div>
   <div style="overflow-x:auto;">
-    <table id="history-table">
+    <table class="hist-table" id="history-table">
       <thead>
         <tr>
           <th>日時</th>
-          <th>メルカリ<br>(有/無)</th>
-          <th>スニダン<br>(有/無)</th>
-          <th>ホムラ<br>(有/無)</th>
+          <th>メルカリ<br>(有 / 無)</th>
+          <th>スニダン<br>(有 / 無)</th>
+          <th>買取ホムラ<br>(有 / 無)</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -75,70 +121,140 @@
 
 <script>
 let rawData = [];
+let shrinkMode = "with"; // "with" or "without"
 let currentBoxId = "30th_celebration";
 let chartInstance = null;
 
-const BOX_LABELS = {
-  "30th_celebration": "30th CELEBRATION",
-  "mega_dream_ex": "MEGAドリームex"
-};
+// 発売日順（通常BOX） → スペシャルBOX → 9種セット の定義
+const BOX_MASTER = [
+  { id: "30th_celebration", name: "MEGA 拡張パック「30th CELEBRATION」", short: "30th BOX", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 7200 },
+  { id: "storm_emeralda", name: "MEGA 拡張パック「ストームエメラルダ」", short: "ストームエメラルダ", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 6000 },
+  { id: "abyss_eye", name: "MEGA 拡張パック「アビスアイ」", short: "アビスアイ", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 6000 },
+  { id: "munikis_zero", name: "MEGA 拡張パック「ムニキスゼロ」", short: "ムニキスゼロ", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 5400 },
+  { id: "mega_dream_ex", name: "MEGA ハイクラスパック「MEGAドリームex」", short: "MEGAドリームex", cat: "MEGA 拡張パック・ハイクラスパック（発売日順）", retail: 5500 },
+  { id: "sp_box_tohoku", name: "スペシャルBOX ポケモンセンタートウホク", short: "SP トウホク", cat: "スペシャルBOX・記念セット", retail: 2090 },
+  { id: "sp_box_hiroshima", name: "スペシャルBOX ポケモンセンターヒロシマ", short: "SP ヒロシマ", cat: "スペシャルBOX・記念セット", retail: 2090 },
+  { id: "sp_box_fukuoka", name: "スペシャルBOX ポケモンセンターフクオカ", short: "SP フクオカ", cat: "スペシャルBOX・記念セット", retail: 2090 },
+  { id: "30th_card_set_9", name: "30th CELEBRATION カードセット 9種セット", short: "30th 9種セット", cat: "スペシャルBOX・記念セット", retail: 10800 }
+];
 
 function fmt(val) {
-  return val ? val.toLocaleString() + "円" : "―";
+  return val ? "¥" + val.toLocaleString() : "―";
 }
 
-function calcDiff(curr, prev) {
-  if (!curr || !prev) return `<span class="diff even">±0</span>`;
+function fmtDiffInline(curr, prev) {
+  if (!curr || !prev) return `<span class="mini-diff even">±0</span>`;
   const d = curr - prev;
-  if (d > 0) return `<span class="diff up">+${d.toLocaleString()}</span>`;
-  if (d < 0) return `<span class="diff down">${d.toLocaleString()}</span>`;
-  return `<span class="diff even">±0</span>`;
+  if (d > 0) return `<span class="mini-diff up">+¥${d.toLocaleString()}</span>`;
+  if (d < 0) return `<span class="mini-diff down">-¥${Math.abs(d).toLocaleString()}</span>`;
+  return `<span class="mini-diff even">±0</span>`;
+}
+
+function setShrinkMode(mode) {
+  shrinkMode = mode;
+  document.getElementById("btn-with").className = "mode-btn" + (mode === "with" ? " active" : "");
+  document.getElementById("btn-without").className = "mode-btn" + (mode === "without" ? " active" : "");
+  renderAll();
+}
+
+function selectBoxFromTable(boxId) {
+  currentBoxId = boxId;
+  renderAll();
+  document.getElementById("detail-section").scrollIntoView({ behavior: "smooth" });
+}
+
+function renderSummaryTable(latest, prev) {
+  const tbody = document.querySelector("#summary-table tbody");
+  let html = "";
+  let lastCat = "";
+  const suffix = shrinkMode === "with" ? "_with" : "_without";
+
+  BOX_MASTER.forEach(item => {
+    if (item.cat !== lastCat) {
+      html += `<tr class="cat-row"><td colspan="6">${item.cat}</td></tr>`;
+      lastCat = item.cat;
+    }
+    const currB = (latest.boxes && latest.boxes[item.id]) || {};
+    const prevB = (prev.boxes && prev.boxes[item.id]) || {};
+
+    const mVal = currB["mercari" + suffix];
+    const sVal = currB["snkrdunk" + suffix];
+    const hVal = currB["homura" + suffix];
+
+    // 差益計算（買取ホムラ － 定価）
+    let profitHtml = "―";
+    if (hVal && item.retail) {
+      const diff = hVal - item.retail;
+      const sign = diff >= 0 ? "+" : "-";
+      const cls = diff >= 0 ? "profit-pos" : "profit-neg";
+      profitHtml = `<span class="${cls}">${sign}¥${Math.abs(diff).toLocaleString()}</span>`;
+    }
+
+    html += `
+      <tr class="box-row" onclick="selectBoxFromTable('${item.id}')">
+        <td class="box-name-cell">${item.name}</td>
+        <td class="retail-cell">¥${item.retail.toLocaleString()}</td>
+        <td>${profitHtml}</td>
+        <td><strong>${fmt(mVal)}</strong>${fmtDiffInline(mVal, prevB["mercari" + suffix])}</td>
+        <td><strong>${fmt(sVal)}</strong>${fmtDiffInline(sVal, prevB["snkrdunk" + suffix])}</td>
+        <td><span class="best-badge">${fmt(hVal)}</span>${fmtDiffInline(hVal, prevB["homura" + suffix])}</td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
 }
 
 function renderTabs() {
   const container = document.getElementById("box-tabs");
   container.innerHTML = "";
-  Object.keys(BOX_LABELS).forEach(id => {
+  BOX_MASTER.forEach(item => {
     const btn = document.createElement("div");
-    btn.className = "tab" + (id === currentBoxId ? " active" : "");
-    btn.textContent = BOX_LABELS[id];
-    btn.onclick = () => { currentBoxId = id; renderAll(); };
+    btn.className = "tab" + (item.id === currentBoxId ? " active" : "");
+    btn.textContent = item.short;
+    btn.onclick = () => { currentBoxId = item.id; renderAll(); };
     container.appendChild(btn);
   });
 }
 
 function renderAll() {
-  renderTabs();
   if (!rawData.length) return;
-
   const latest = rawData[rawData.length - 1];
   const prev = rawData.length > 1 ? rawData[rawData.length - 2] : latest;
-  document.getElementById("last-updated").textContent = `最終更新: ${latest.timestamp}`;
+
+  document.getElementById("last-updated").textContent = `最終更新: ${latest.timestamp} （行タップで下部グラフ切替）`;
+
+  renderSummaryTable(latest, prev);
+  renderTabs();
 
   const currBox = latest.boxes[currentBoxId] || {};
   const prevBox = prev.boxes[currentBoxId] || {};
+  const masterInfo = BOX_MASTER.find(b => b.id === currentBoxId) || {};
+
+  document.getElementById("chart-title").textContent = `📈 ${masterInfo.name || ""} 推移（定価: ¥${(masterInfo.retail||0).toLocaleString()}）`;
+
+  const mWithNet = currBox.mercari_with ? `手数料10%引: ¥${Math.round(currBox.mercari_with * 0.9).toLocaleString()}` : "";
+  const mWithoutNet = currBox.mercari_without ? `手数料10%引: ¥${Math.round(currBox.mercari_without * 0.9).toLocaleString()}` : "";
 
   const items = [
-    { label: "メルカリ (シュリンク有)", key: "mercari_with" },
-    { label: "メルカリ (シュリンク無)", key: "mercari_without" },
-    { label: "スニダン (シュリンク有)", key: "snkrdunk_with" },
-    { label: "スニダン (シュリンク無)", key: "snkrdunk_without" },
-    { label: "買取ホムラ (シュリンク有)", key: "homura_with" },
-    { label: "買取ホムラ (シュリンク無)", key: "homura_without" },
+    { label: "メルカリ (シュリンク有)", key: "mercari_with", note: mWithNet },
+    { label: "メルカリ (シュリンク無)", key: "mercari_without", note: mWithoutNet },
+    { label: "スニダン (シュリンク有)", key: "snkrdunk_with", note: "" },
+    { label: "スニダン (シュリンク無)", key: "snkrdunk_without", note: "" },
+    { label: "買取ホムラ (シュリンク有)", key: "homura_with", note: "手数料なし即金" },
+    { label: "買取ホムラ (シュリンク無)", key: "homura_without", note: "手数料なし即金" },
   ];
 
-  const cardsContainer = document.getElementById("price-cards");
-  cardsContainer.innerHTML = items.map(item => `
+  document.getElementById("price-cards").innerHTML = items.map(item => `
     <div class="card">
       <div class="card-title">${item.label}</div>
-      <div>
+      <div style="display:flex; align-items:baseline; gap:6px;">
         <span class="price">${fmt(currBox[item.key])}</span>
-        ${calcDiff(currBox[item.key], prevBox[item.key])}
+        ${fmtDiffInline(currBox[item.key], prevBox[item.key])}
       </div>
+      ${item.note ? `<div class="sub-note">${item.note}</div>` : ""}
     </div>
   `).join("");
 
-  // グラフ描画
   const labels = rawData.map(d => d.timestamp.slice(5, 16));
   const datasets = [
     { label: "メルカリ(有)", key: "mercari_with", color: "#ef4444", dash: [] },
@@ -169,7 +285,6 @@ function renderAll() {
     }
   });
 
-  // 履歴テーブル
   const tbody = document.querySelector("#history-table tbody");
   tbody.innerHTML = rawData.slice(-10).reverse().map(d => {
     const b = d.boxes[currentBoxId] || {};
