@@ -14,13 +14,12 @@ TARGETS = [
     {
         "id": "30th_celebration",
         "name": "MEGA 拡張パック「30th CELEBRATION」",
-        # フューチャリスティック等を最初から検索除外して純粋なBOXだけを出す
-        "kw_with": "ポケカ 30th BOX シュリンク付き -フューチャリスティック -FUTURISTIC -セット",
-        "kw_without": "ポケカ 30th BOX シュリンクなし -フューチャリスティック -FUTURISTIC -セット",
+        "kw_with": "30th CELEBRATION BOX シュリンク付き",
+        "kw_without": "30th CELEBRATION BOX シュリンクなし",
         "must_words": ["30TH", "30周年", "CELEBRATION"],
         "extra_ng_words": [
             "フューチャリスティック", "FUTURISTIC", "カードセット", "御三家", "ファイル", "デッキ", "エネルギー",
-            "25TH", "25周年", "20TH", "20周年", "ゴールデン", "GOLDEN", "アニバーサリー"
+            "25TH", "25周年", "20TH", "20周年", "ゴールデン", "GOLDEN", "アニバーサリー", "アビスアイ"
         ],
         "snkrdunk_with_url": "https://snkrdunk.com/apparels/881421",
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/881427",
@@ -32,10 +31,10 @@ TARGETS = [
     {
         "id": "mega_dream_ex",
         "name": "MEGA ハイクラスパック「MEGAドリームex」",
-        "kw_with": "MEGAドリームex BOX シュリンク付き -セット",
-        "kw_without": "MEGAドリームex BOX シュリンクなし -セット",
+        "kw_with": "MEGAドリームex BOX シュリンク付き",
+        "kw_without": "MEGAドリームex BOX シュリンクなし",
         "must_words": ["MEGAドリーム", "メガドリーム", "ドリームEX"],
-        "extra_ng_words": ["デッキ", "ファイル", "アビスアイ", "テラスタル", "バトルパートナーズ", "151"],
+        "extra_ng_words": ["デッキ", "ファイル", "アビスアイ", "テラスタル", "バトルパートナーズ", "151", "30TH"],
         "snkrdunk_with_url": "https://snkrdunk.com/apparels/721913",
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/721915",
         "homura_with_url": "https://kaitori-homura.com/products/3465",
@@ -46,13 +45,13 @@ TARGETS = [
 ]
 
 COMMON_NG_WORDS = [
-    "空箱", "空き箱", "箱のみ", "パックのみ", "バラ", "1p", "5p", "10p", "1パック", "10パック",
+    "空箱", "空き箱", "箱のみ", "パックのみ", "バラ", "1P", "5P", "10P", "1パック", "10パック",
     "カートン", "セット", "まとめ", "オリパ", "確定", "サーチ", "開封済",
     "SAR", "SR", "AR", "UR", "MA", "MUR", "FUR", "プロモ", "PSA", "シングル",
-    "ピカチュウ", "ゲンガー", "リザードン", "ミュウ", "ルギア", "カイリュー", "アクリル", "ケース"
+    "ピカチュウ", "ゲンガー", "リザードン", "ミュウ", "ルギア", "カイリュー", "アクリル", "ケースのみ"
 ]
 
-NO_SHRINK_WORDS = ["シュリンクなし", "シュリンク無し", "シュリなし", "シュリ無し", "ペリペリ"]
+NO_SHRINK_WORDS = ["シュリンクなし", "シュリンク無し", "シュリなし", "シュリ無し", "ペリペリ", "シュリンク無"]
 WITH_SHRINK_WORDS = ["シュリンク付き", "シュリンクつき", "シュリンク有", "シュリ付き", "未開封"]
 
 DATA_FILE = "data.json"
@@ -65,13 +64,13 @@ def get_usd_jpy_rate():
         res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=10).json()
         return float(res["rates"]["JPY"])
     except Exception:
-        return 155.0
+        return 157.0
 
 
 def is_valid_mercari_item(title, target, expect_shrink):
     t_upper = title.upper()
 
-    # 1. 必須ワード（いずれか1つでも入っていればOK）
+    # 1. 必須ワードチェック
     if not any(w.upper() in t_upper for w in target["must_words"]):
         return False
 
@@ -80,19 +79,17 @@ def is_valid_mercari_item(title, target, expect_shrink):
         if ng.upper() in t_upper:
             return False
 
-    # 3. 複数BOX売り（2BOX、3箱、2個セットなど）を除外
-    if re.search(r'[2-9２-９]\s*(BOX|ボックス|箱|個|点)', t_upper):
+    # 3. 複数BOX売り（2BOX、3箱、2個セットなど）を除外（「30th」の数字は除外しないよう厳密化）
+    if re.search(r'(?<!\d)[2-9２-９]\s*(BOX|ボックス|箱|個|点)', t_upper):
         return False
 
     has_no_shrink_word = any(w in title for w in NO_SHRINK_WORDS)
 
     if expect_shrink:
-        # シュリンク付きを探している時は「シュリンクなし」ワードが入っていたら除外
         if has_no_shrink_word:
             return False
         return True
     else:
-        # シュリンクなしを探している時は「シュリンクなし・ペリペリ」ワードが必須
         return has_no_shrink_word
 
 
@@ -117,11 +114,12 @@ async def scrape_mercari_single_mode(page, keyword, target, usd_rate, expect_shr
     kw = quote(keyword)
     url = f"https://jp.mercari.com/search?keyword={kw}&status=sold_out&sort=created_time&order=desc"
     prices = []
+    mode_label = "有" if expect_shrink else "無"
 
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
         await page.wait_for_timeout(5000)
-        await page.evaluate("window.scrollBy(0, 1200)")
+        await page.evaluate("window.scrollBy(0, 1500)")
         await page.wait_for_timeout(2500)
 
         items_data = await page.evaluate("""() => {
@@ -140,17 +138,23 @@ async def scrape_mercari_single_mode(page, keyword, target, usd_rate, expect_shr
                         text += ' ' + (thumb.shadowRoot.innerHTML || '');
                     }
                 }
-                results.push(text.replace(/\\s+/g, ' ').trim());
+                // サムネイル等の重複ワードを削って綺麗にする
+                text = text.replace(/のサムネイル/g, '').replace(/\\s+/g, ' ').trim();
+                results.push(text);
             });
             return results;
         }""")
 
-        for raw_text in items_data[:40]:
+        for raw_text in items_data[:45]:
             price = extract_mercari_price_jpy(raw_text, usd_rate, target)
             if not price:
                 continue
             if is_valid_mercari_item(raw_text, target, expect_shrink):
                 prices.append(price)
+
+        # もし0件だった場合、何が画面に出ていたのか先頭2件をログに出力して原因を見える化する
+        if not prices and items_data:
+            print(f"    [Debug Mercari({mode_label}) 0件] 画面の先頭商品: {items_data[0][:90]} / {items_data[1][:90] if len(items_data)>1 else ''}")
 
         med = int(statistics.median(prices[:10])) if prices else None
         return med, len(prices)
