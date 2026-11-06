@@ -12,8 +12,8 @@
       --text: #f8fafc;
       --sub: #94a3b8;
       --accent: #38bdf8;
-      --plus: #22c55e;   /* プラス（上昇・利益）＝ 緑に統一 */
-      --minus: #ef4444;  /* マイナス（下落・赤字）＝ 赤に統一 */
+      --plus: #22c55e;   /* プラス（上昇・利益）＝ 緑 */
+      --minus: #ef4444;  /* マイナス（下落・赤字）＝ 赤 */
       --border: #334155;
     }
     * { box-sizing: border-box; }
@@ -28,7 +28,11 @@
     }
     h1 { font-size: 15px; margin: 0; white-space: nowrap; }
     .updated { font-size: 10px; color: var(--sub); margin-bottom: 8px; }
-    .section-title { font-size: 14px; font-weight: bold; margin: 18px 0 8px 0; color: var(--accent); }
+    .section-title {
+      font-size: 14px; font-weight: bold; margin: 18px 0 6px 0; color: var(--accent);
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .section-sub { font-size: 10px; color: var(--sub); font-weight: normal; }
 
     .mode-switch {
       display: inline-flex; background: var(--card); border-radius: 8px;
@@ -103,15 +107,33 @@
     }
 
     /* 下部：個別詳細エリア */
-    .tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
     .tab {
       padding: 6px 9px; border-radius: 8px; border: 1px solid var(--border);
       background: var(--card); color: var(--sub); font-weight: bold; font-size: 11px; cursor: pointer;
     }
     .tab.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+
+    /* タップでグラフのON/OFFを切り替える価格カード */
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-    .card { background: var(--card); padding: 10px; border-radius: 10px; border: 1px solid var(--border); }
-    .card-title { font-size: 11px; color: var(--sub); margin-bottom: 4px; }
+    .card {
+      background: var(--card); padding: 9px 10px; border-radius: 10px;
+      border: 1.5px solid var(--border); cursor: pointer; user-select: none;
+      transition: all 0.15s ease; position: relative; opacity: 0.6;
+    }
+    .card.active-line {
+      opacity: 1;
+      background: #233047;
+    }
+    .card-top {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+    }
+    .card-title { font-size: 11px; color: var(--sub); font-weight: bold; }
+    .card.active-line .card-title { color: var(--text); }
+    .line-badge {
+      font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: bold;
+      background: #0f172a; color: var(--sub); border: 1px solid var(--border);
+    }
     .price { font-size: 15px; font-weight: bold; }
     .sub-note { font-size: 9px; color: var(--sub); margin-top: 3px; }
     
@@ -164,7 +186,10 @@
   </div>
 
   <!-- 下部：スワイプで見る個別グラフ＆履歴 -->
-  <div class="section-title" id="detail-section">📊 個別BOX 相場推移＆履歴</div>
+  <div class="section-title" id="detail-section">
+    <span>📊 個別BOX 相場推移＆履歴</span>
+    <span class="section-sub">※カードをタップでグラフに線を追加/解除</span>
+  </div>
   <div class="tabs" id="box-tabs"></div>
   <div class="grid" id="price-cards"></div>
 
@@ -178,7 +203,7 @@
         <div class="range-btn active" id="range-0" onclick="setChartRange(0)">全期間</div>
       </div>
     </div>
-    <canvas id="priceChart" height="210"></canvas>
+    <canvas id="priceChart" height="220"></canvas>
   </div>
 
   <div class="card-title" style="margin-bottom:6px;">🕒 過去の記録履歴（直近10回）</div>
@@ -201,8 +226,28 @@
 let rawData = [];
 let shrinkMode = "with";
 let currentBoxId = "30th_celebration";
-let chartRangeDays = 0; // 0=全期間, 7=1週間, 30=1ヶ月, 90=3ヶ月
+let chartRangeDays = 0;
 let chartInstance = null;
+
+// 初期状態でグラフに表示するキー（基本はシュリンク有の4本をON）
+let activeChartKeys = new Set([
+  "mercari_with",
+  "yahoo_with",
+  "snkrdunk_with",
+  "homura_with"
+]);
+
+// 全8種類のデータ定義（シュリンク有は実線、シュリンク無は点線）
+const SERIES_CONFIG = [
+  { key: "mercari_with",     label: "メルカリ (有)",     shortLabel: "メルカリ(有)", color: "#ef4444", dash: [],    feeRate: 0.9,  noteText: "" },
+  { key: "mercari_without",  label: "メルカリ (無)",     shortLabel: "メルカリ(無)", color: "#f87171", dash: [5,4], feeRate: 0.9,  noteText: "" },
+  { key: "yahoo_with",       label: "Yahoo!フリマ (有)", shortLabel: "Yahoo!(有)",   color: "#f59e0b", dash: [],    feeRate: 0.95, noteText: "" },
+  { key: "yahoo_without",    label: "Yahoo!フリマ (無)", shortLabel: "Yahoo!(無)",   color: "#fbbf24", dash: [5,4], feeRate: 0.95, noteText: "" },
+  { key: "snkrdunk_with",    label: "スニダン (有)",     shortLabel: "スニダン(有)", color: "#38bdf8", dash: [],    feeRate: null, noteText: "" },
+  { key: "snkrdunk_without", label: "スニダン (無)",     shortLabel: "スニダン(無)", color: "#7dd3fc", dash: [5,4], feeRate: null, noteText: "" },
+  { key: "homura_with",      label: "買取ホムラ (有)",   shortLabel: "ホムラ(有)",   color: "#22c55e", dash: [],    feeRate: null, noteText: "手数料なし即金" },
+  { key: "homura_without",   label: "買取ホムラ (無)",   shortLabel: "ホムラ(無)",   color: "#4ade80", dash: [5,4], feeRate: null, noteText: "手数料なし即金" }
+];
 
 const BOX_MASTER = [
   { id: "30th_celebration", name: "30th CELEBRATION", short: "30th BOX", cat: "MEGA 拡張・ハイクラス（発売日順）", retail: 7200 },
@@ -241,6 +286,16 @@ function setChartRange(days) {
     const el = document.getElementById("range-" + d);
     if (el) el.className = "range-btn" + (d === days ? " active" : "");
   });
+  renderAll();
+}
+
+function toggleChartLine(key) {
+  if (activeChartKeys.has(key)) {
+    // すべて消えてしまうのを防ぐため最低1本は残す
+    if (activeChartKeys.size > 1) activeChartKeys.delete(key);
+  } else {
+    activeChartKeys.add(key);
+  }
   renderAll();
 }
 
@@ -332,46 +387,75 @@ function renderAll() {
 
   document.getElementById("chart-title").textContent = `📈 ${masterInfo.name || ""}（定¥${(masterInfo.retail||0).toLocaleString()}）`;
 
-  const mWithNet = currBox.mercari_with ? `手数料10%引: ¥${Math.round(currBox.mercari_with * 0.9).toLocaleString()}` : "";
-  const yWithNet = currBox.yahoo_with ? `手数料5%引: ¥${Math.round(currBox.yahoo_with * 0.95).toLocaleString()}` : "";
+  // 8枚の価格カードを描画（タップでグラフのON/OFF）
+  document.getElementById("price-cards").innerHTML = SERIES_CONFIG.map(cfg => {
+    const val = currBox[cfg.key];
+    const isOn = activeChartKeys.has(cfg.key);
+    const borderStyle = isOn ? `border-color: ${cfg.color}; box-shadow: 0 0 0 1px ${cfg.color}40;` : "";
+    const badgeStyle = isOn ? `background: ${cfg.color}25; color: ${cfg.color}; border-color: ${cfg.color};` : "";
+    const badgeText = isOn ? (cfg.dash.length ? "📈点線ON" : "📈実線ON") : "非表示";
 
-  const items = [
-    { label: "メルカリ (有)", key: "mercari_with", note: mWithNet },
-    { label: "メルカリ (無)", key: "mercari_without", note: "" },
-    { label: "Yahoo!フリマ (有)", key: "yahoo_with", note: yWithNet },
-    { label: "Yahoo!フリマ (無)", key: "yahoo_without", note: "" },
-    { label: "スニダン (有)", key: "snkrdunk_with", note: "" },
-    { label: "スニダン (無)", key: "snkrdunk_without", note: "" },
-    { label: "買取ホムラ (有)", key: "homura_with", note: "手数料なし即金" },
-    { label: "買取ホムラ (無)", key: "homura_without", note: "手数料なし即金" },
-  ];
+    let note = cfg.noteText;
+    if (cfg.feeRate && val) {
+      const pct = Math.round((1 - cfg.feeRate) * 100);
+      note = `手数料${pct}%引: ¥${Math.round(val * cfg.feeRate).toLocaleString()}`;
+    }
 
-  document.getElementById("price-cards").innerHTML = items.map(item => `
-    <div class="card">
-      <div class="card-title">${item.label}</div>
-      <div style="display:flex; align-items:baseline; gap:6px;">
-        <span class="price">${fmt(currBox[item.key])}</span>
-        ${fmtDiffInline(currBox[item.key], prevBox[item.key])}
+    return `
+      <div class="card ${isOn ? 'active-line' : ''}" style="${borderStyle}" onclick="toggleChartLine('${cfg.key}')">
+        <div class="card-top">
+          <span class="card-title">${cfg.label}</span>
+          <span class="line-badge" style="${badgeStyle}">${badgeText}</span>
+        </div>
+        <div style="display:flex; align-items:baseline; gap:6px;">
+          <span class="price">${fmt(val)}</span>
+          ${fmtDiffInline(val, prevBox[cfg.key])}
+        </div>
+        ${note ? `<div class="sub-note">${note}</div>` : ""}
       </div>
-      ${item.note ? `<div class="sub-note">${item.note}</div>` : ""}
-    </div>
-  `).join("");
+    `;
+  }).join("");
 
   const chartData = getFilteredChartData();
   const labels = chartData.map(d => d.timestamp.slice(5, 16));
-  const datasets = [
-    { label: "メルカリ(有)", key: "mercari_with", color: "#ef4444", dash: [] },
-    { label: "Yahoo!(有)", key: "yahoo_with", color: "#f59e0b", dash: [] },
-    { label: "スニダン(有)", key: "snkrdunk_with", color: "#38bdf8", dash: [] },
-    { label: "ホムラ買取(有)", key: "homura_with", color: "#22c55e", dash: [] },
-  ].map(ds => ({
-    label: ds.label,
-    data: chartData.map(d => (d.boxes[currentBoxId] || {})[ds.key] || null),
-    borderColor: ds.color,
-    borderDash: ds.dash,
-    tension: 0.2,
-    pointRadius: 2
-  }));
+
+  // 選択（ON）になっている系列だけをグラフ化
+  const activeConfigs = SERIES_CONFIG.filter(cfg => activeChartKeys.has(cfg.key));
+  const allVisibleValues = [];
+
+  const datasets = activeConfigs.map(cfg => {
+    const dataArr = chartData.map(d => {
+      const v = (d.boxes[currentBoxId] || {})[cfg.key] || null;
+      if (v !== null) allVisibleValues.push(v);
+      return v;
+    });
+    return {
+      label: cfg.shortLabel,
+      data: dataArr,
+      borderColor: cfg.color,
+      backgroundColor: cfg.color,
+      borderDash: cfg.dash,
+      borderWidth: 2,
+      tension: 0.15,
+      pointRadius: 2.5
+    };
+  });
+
+  // 縦軸（Y軸）の過剰な拡大を防ぐためのスケール計算
+  // 価格差がわずか数百円のときでも、最低±18%（または±1,800円）の幅を持たせて自然な見た目にする
+  let yMin = undefined;
+  let yMax = undefined;
+  if (allVisibleValues.length > 0) {
+    const minVal = Math.min(...allVisibleValues);
+    const maxVal = Math.max(...allVisibleValues);
+    const center = (minVal + maxVal) / 2;
+    const actualSpan = maxVal - minVal;
+    const minTargetSpan = Math.max(center * 0.25, 2500); // 最低でも全体の25%幅または2,500円幅を確保
+    const halfSpan = Math.max(actualSpan * 0.75, minTargetSpan / 2);
+
+    yMin = Math.max(0, Math.floor((center - halfSpan) / 500) * 500);
+    yMax = Math.ceil((center + halfSpan) / 500) * 500;
+  }
 
   const ctx = document.getElementById("priceChart").getContext("2d");
   if (chartInstance) chartInstance.destroy();
@@ -380,10 +464,22 @@ function renderAll() {
     data: { labels, datasets },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { color: "#f8fafc", font: { size: 10 } } } },
+      plugins: {
+        legend: {
+          labels: { color: "#f8fafc", font: { size: 10 }, boxWidth: 20 }
+        }
+      },
       scales: {
         x: { ticks: { color: "#94a3b8", font: { size: 10 } } },
-        y: { ticks: { color: "#94a3b8", font: { size: 10 } } }
+        y: {
+          min: yMin,
+          max: yMax,
+          ticks: {
+            color: "#94a3b8",
+            font: { size: 10 },
+            callback: function(value) { return "¥" + value.toLocaleString(); }
+          }
+        }
       }
     }
   });
