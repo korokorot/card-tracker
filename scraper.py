@@ -14,28 +14,34 @@ TARGETS = [
     {
         "id": "30th_celebration",
         "name": "MEGA 拡張パック「30th CELEBRATION」",
-        "search_keyword": "30th CELEBRATION BOX",
-        "must_words": ["30th", "CELEBRATION"],
-        "extra_ng_words": ["フューチャリスティック", "FUTURISTIC", "カードセット", "御三家", "ファイル", "デッキ", "エネルギー"],
+        # フューチャリスティック等を最初から検索除外して純粋なBOXだけを出す
+        "kw_with": "ポケカ 30th BOX シュリンク付き -フューチャリスティック -FUTURISTIC -セット",
+        "kw_without": "ポケカ 30th BOX シュリンクなし -フューチャリスティック -FUTURISTIC -セット",
+        "must_words": ["30TH", "30周年", "CELEBRATION"],
+        "extra_ng_words": [
+            "フューチャリスティック", "FUTURISTIC", "カードセット", "御三家", "ファイル", "デッキ", "エネルギー",
+            "25TH", "25周年", "20TH", "20周年", "ゴールデン", "GOLDEN", "アニバーサリー"
+        ],
         "snkrdunk_with_url": "https://snkrdunk.com/apparels/881421",
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/881427",
         "homura_with_url": "https://kaitori-homura.com/products/7237",
         "homura_without_url": "https://kaitori-homura.com/products/7238",
-        "min_valid_price": 8000,
-        "max_valid_price": 45000
+        "min_valid_price": 10000,
+        "max_valid_price": 35000
     },
     {
         "id": "mega_dream_ex",
         "name": "MEGA ハイクラスパック「MEGAドリームex」",
-        "search_keyword": "MEGAドリームex BOX",
-        "must_words": ["MEGAドリーム", "メガドリーム", "ドリームex"],
+        "kw_with": "MEGAドリームex BOX シュリンク付き -セット",
+        "kw_without": "MEGAドリームex BOX シュリンクなし -セット",
+        "must_words": ["MEGAドリーム", "メガドリーム", "ドリームEX"],
         "extra_ng_words": ["デッキ", "ファイル", "アビスアイ", "テラスタル", "バトルパートナーズ", "151"],
         "snkrdunk_with_url": "https://snkrdunk.com/apparels/721913",
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/721915",
         "homura_with_url": "https://kaitori-homura.com/products/3465",
         "homura_without_url": "https://kaitori-homura.com/products/3383",
         "min_valid_price": 6000,
-        "max_valid_price": 35000
+        "max_valid_price": 25000
     }
 ]
 
@@ -55,48 +61,48 @@ ALERT_THRESHOLD = 1000
 
 
 def get_usd_jpy_rate():
-    """現在のドル円レートを取得（メルカリがUS$表示になった場合の換算用）"""
     try:
         res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=10).json()
         return float(res["rates"]["JPY"])
     except Exception:
-        return 153.0
+        return 155.0
 
 
-def filter_mercari_title(title, target):
+def is_valid_mercari_item(title, target, expect_shrink):
     t_upper = title.upper()
-    if target["id"] == "30th_celebration":
-        if not ("30TH" in t_upper and "CELEBRATION" in t_upper):
-            return None
-    else:
-        if not any(w.upper() in t_upper for w in target["must_words"]):
-            return None
 
+    # 1. 必須ワード（いずれか1つでも入っていればOK）
+    if not any(w.upper() in t_upper for w in target["must_words"]):
+        return False
+
+    # 2. NGワードチェック
     for ng in COMMON_NG_WORDS + target["extra_ng_words"]:
         if ng.upper() in t_upper:
-            return None
+            return False
 
-    # 複数BOX売り（2BOX、3箱、2個セットなど）を除外
-    if re.search(r'[2-9２-９]\s*(BOX|ボックス|箱|個)', t_upper):
-        return None
+    # 3. 複数BOX売り（2BOX、3箱、2個セットなど）を除外
+    if re.search(r'[2-9２-９]\s*(BOX|ボックス|箱|個|点)', t_upper):
+        return False
 
-    if any(w in title for w in NO_SHRINK_WORDS):
-        return "without_shrink"
-    if any(w in title for w in WITH_SHRINK_WORDS) or "BOX" in t_upper or "ボックス" in title:
-        return "with_shrink"
-    return None
+    has_no_shrink_word = any(w in title for w in NO_SHRINK_WORDS)
+
+    if expect_shrink:
+        # シュリンク付きを探している時は「シュリンクなし」ワードが入っていたら除外
+        if has_no_shrink_word:
+            return False
+        return True
+    else:
+        # シュリンクなしを探している時は「シュリンクなし・ペリペリ」ワードが必須
+        return has_no_shrink_word
 
 
 def extract_mercari_price_jpy(raw_text, usd_rate, target):
-    """メルカリのテキストから日本円価格を抽出（US$表記なら日本円に換算）"""
-    # 1. JPY属性や¥マークがあれば最優先
     jpy_matches = re.findall(r'(?:[¥￥]|JPY_RAW:)\s*([\d,]{4,7})|([\d,]{4,7})\s*円', raw_text)
     for m in jpy_matches:
         val = int((m[0] or m[1]).replace(',', ''))
         if target["min_valid_price"] <= val <= target["max_valid_price"]:
             return val
 
-    # 2. US$ 表記になっている場合は為替レートで日本円に換算（100円単位で丸め）
     usd_matches = re.findall(r'US\$\s*([\d,]+\.\d+|[\d,]+)', raw_text)
     for m in usd_matches:
         usd_val = float(m.replace(',', ''))
@@ -107,16 +113,16 @@ def extract_mercari_price_jpy(raw_text, usd_rate, target):
     return None
 
 
-async def scrape_mercari(page, target, usd_rate):
-    kw = quote(target["search_keyword"])
+async def scrape_mercari_single_mode(page, keyword, target, usd_rate, expect_shrink):
+    kw = quote(keyword)
     url = f"https://jp.mercari.com/search?keyword={kw}&status=sold_out&sort=created_time&order=desc"
-    with_prices, without_prices = [], []
+    prices = []
 
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
-        await page.wait_for_timeout(6000)
-        await page.evaluate("window.scrollBy(0, 1500)")
-        await page.wait_for_timeout(3000)
+        await page.wait_for_timeout(5000)
+        await page.evaluate("window.scrollBy(0, 1200)")
+        await page.wait_for_timeout(2500)
 
         items_data = await page.evaluate("""() => {
             const results = [];
@@ -139,26 +145,18 @@ async def scrape_mercari(page, target, usd_rate):
             return results;
         }""")
 
-        print(f"  [Mercari] Extracted items: {len(items_data)} (Rate: {usd_rate:.1f} JPY/USD)")
-
-        for raw_text in items_data[:45]:
+        for raw_text in items_data[:40]:
             price = extract_mercari_price_jpy(raw_text, usd_rate, target)
             if not price:
                 continue
+            if is_valid_mercari_item(raw_text, target, expect_shrink):
+                prices.append(price)
 
-            status = filter_mercari_title(raw_text, target)
-            if status == "with_shrink":
-                with_prices.append(price)
-            elif status == "without_shrink":
-                without_prices.append(price)
-
-        med_with = int(statistics.median(with_prices[:10])) if with_prices else None
-        med_without = int(statistics.median(without_prices[:10])) if without_prices else None
-        print(f"  [Mercari Result] 有: {med_with} ({len(with_prices)}件) / 無: {med_without} ({len(without_prices)}件)")
-        return med_with, med_without
+        med = int(statistics.median(prices[:10])) if prices else None
+        return med, len(prices)
     except Exception as e:
         print(f"  [Mercari Error] {e}")
-        return None, None
+        return None, 0
 
 
 async def scrape_snkrdunk_single(page, url, target):
@@ -277,7 +275,9 @@ async def main():
 
         for target in TARGETS:
             print(f"=== Fetching {target['name']} ===")
-            m_with, m_without = await scrape_mercari(page, target, usd_rate)
+            m_with, cnt_w = await scrape_mercari_single_mode(page, target["kw_with"], target, usd_rate, True)
+            m_without, cnt_wo = await scrape_mercari_single_mode(page, target["kw_without"], target, usd_rate, False)
+            print(f"  [Mercari Result] 有: {m_with} ({cnt_w}件) / 無: {m_without} ({cnt_wo}件)")
 
             s_with = await scrape_snkrdunk_single(page, target["snkrdunk_with_url"], target)
             s_without = await scrape_snkrdunk_single(page, target["snkrdunk_without_url"], target)
