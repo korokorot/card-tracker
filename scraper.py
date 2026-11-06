@@ -14,9 +14,9 @@ TARGETS = [
     {
         "id": "30th_celebration",
         "name": "MEGA 拡張パック「30th CELEBRATION」",
-        "kw_with": "30th CELEBRATION BOX シュリンク付き",
-        "kw_without": "30th CELEBRATION BOX シュリンクなし",
-        "must_words": ["30TH", "30周年", "CELEBRATION"],
+        "kw_with": "ポケカ 30th BOX シュリンク付き",
+        "kw_without": "ポケカ 30th BOX シュリンクなし",
+        "must_words": ["30TH", "30周年"],
         "extra_ng_words": [
             "フューチャリスティック", "FUTURISTIC", "カードセット", "御三家", "ファイル", "デッキ", "エネルギー",
             "25TH", "25周年", "20TH", "20周年", "ゴールデン", "GOLDEN", "アニバーサリー", "アビスアイ"
@@ -70,16 +70,13 @@ def get_usd_jpy_rate():
 def is_valid_mercari_item(title, target, expect_shrink):
     t_upper = title.upper()
 
-    # 1. 必須ワードチェック
     if not any(w.upper() in t_upper for w in target["must_words"]):
         return False
 
-    # 2. NGワードチェック
     for ng in COMMON_NG_WORDS + target["extra_ng_words"]:
         if ng.upper() in t_upper:
             return False
 
-    # 3. 複数BOX売り（2BOX、3箱、2個セットなど）を除外（「30th」の数字は除外しないよう厳密化）
     if re.search(r'(?<!\d)[2-9２-９]\s*(BOX|ボックス|箱|個|点)', t_upper):
         return False
 
@@ -138,7 +135,6 @@ async def scrape_mercari_single_mode(page, keyword, target, usd_rate, expect_shr
                         text += ' ' + (thumb.shadowRoot.innerHTML || '');
                     }
                 }
-                // サムネイル等の重複ワードを削って綺麗にする
                 text = text.replace(/のサムネイル/g, '').replace(/\\s+/g, ' ').trim();
                 results.push(text);
             });
@@ -152,7 +148,6 @@ async def scrape_mercari_single_mode(page, keyword, target, usd_rate, expect_shr
             if is_valid_mercari_item(raw_text, target, expect_shrink):
                 prices.append(price)
 
-        # もし0件だった場合、何が画面に出ていたのか先頭2件をログに出力して原因を見える化する
         if not prices and items_data:
             print(f"    [Debug Mercari({mode_label}) 0件] 画面の先頭商品: {items_data[0][:90]} / {items_data[1][:90] if len(items_data)>1 else ''}")
 
