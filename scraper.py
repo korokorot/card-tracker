@@ -14,12 +14,12 @@ TARGETS = [
     {
         "id": "30th_celebration",
         "name": "MEGA 拡張パック「30th CELEBRATION」",
-        "kw_with": "ポケカ 30th BOX シュリンク付き",
+        "kw_general": "ポケカ 30th BOX",
         "kw_without": "ポケカ 30th BOX シュリンクなし",
-        "must_words": ["30TH", "30周年"],
+        "must_words": ["30TH", "30周年", "CELEBRATION"],
         "extra_ng_words": [
-            "フューチャリスティック", "FUTURISTIC", "カードセット", "御三家", "ファイル", "デッキ", "エネルギー",
-            "25TH", "25周年", "20TH", "20周年", "ゴールデン", "GOLDEN", "アニバーサリー", "アビスアイ"
+            "フューチャリスティック", "FUTURISTIC", "カードセット", "9種", "御三家", "ファイル", "デッキ", "エネルギー",
+            "25TH", "25周年", "20TH", "20周年", "ゴールデン", "GOLDEN", "アニバーサリー", "アビスアイ", "ストームエメラルダ"
         ],
         "snkrdunk_with_url": "https://snkrdunk.com/apparels/881421",
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/881427",
@@ -29,30 +29,138 @@ TARGETS = [
         "max_valid_price": 35000
     },
     {
+        "id": "storm_emeralda",
+        "name": "MEGA 拡張パック「ストームエメラルダ」",
+        "kw_general": "ストームエメラルダ BOX",
+        "kw_without": "ストームエメラルダ BOX シュリンクなし",
+        "must_words": ["ストームエメラルダ", "エメラルダ"],
+        "extra_ng_words": ["レックウザ", "ライコウ", "カイオーガ", "グラードン", "ヒガナ", "30TH", "アビスアイ", "ムニキスゼロ", "メガドリーム"],
+        "snkrdunk_with_url": "https://snkrdunk.com/apparels/846048",
+        "snkrdunk_without_url": "https://snkrdunk.com/apparels/846050",
+        "homura_with_url": "https://kaitori-homura.com/products/6933",
+        "homura_without_url": "https://kaitori-homura.com/products/6934",
+        "min_valid_price": 5000,
+        "max_valid_price": 20000
+    },
+    {
+        "id": "abyss_eye",
+        "name": "MEGA 拡張パック「アビスアイ」",
+        "kw_general": "アビスアイ BOX",
+        "kw_without": "アビスアイ BOX シュリンクなし",
+        "must_words": ["アビスアイ"],
+        "extra_ng_words": ["ダークライ", "ゼラオラ", "シャンデラ", "カスミ", "グラジオ", "ムク", "30TH", "ストームエメラルダ", "ムニキスゼロ", "メガドリーム"],
+        "snkrdunk_with_url": "https://snkrdunk.com/apparels/806644",
+        "snkrdunk_without_url": "https://snkrdunk.com/apparels/806646",
+        "homura_with_url": "https://kaitori-homura.com/products/6733",
+        "homura_without_url": "https://kaitori-homura.com/products/6734",
+        "min_valid_price": 4500,
+        "max_valid_price": 18000
+    },
+    {
+        "id": "munikis_zero",
+        "name": "MEGA 拡張パック「ムニキスゼロ」",
+        "kw_general": "ムニキスゼロ BOX",
+        "kw_without": "ムニキスゼロ BOX シュリンクなし",
+        "must_words": ["ムニキスゼロ"],
+        "extra_ng_words": ["30TH", "ストームエメラルダ", "アビスアイ", "メガドリーム", "インフェルノ"],
+        "snkrdunk_with_url": "https://snkrdunk.com/apparels/743533",
+        "snkrdunk_without_url": "https://snkrdunk.com/apparels/743535",
+        "homura_with_url": "https://kaitori-homura.com/products/5443",
+        "homura_without_url": "https://kaitori-homura.com/products/5444",
+        "min_valid_price": 4500,
+        "max_valid_price": 18000
+    },
+    {
         "id": "mega_dream_ex",
         "name": "MEGA ハイクラスパック「MEGAドリームex」",
-        "kw_with": "MEGAドリームex BOX シュリンク付き",
+        "kw_general": "MEGAドリームex BOX",
         "kw_without": "MEGAドリームex BOX シュリンクなし",
         "must_words": ["MEGAドリーム", "メガドリーム", "ドリームEX"],
-        "extra_ng_words": ["デッキ", "ファイル", "アビスアイ", "テラスタル", "バトルパートナーズ", "151", "30TH"],
+        "extra_ng_words": ["デッキ", "ファイル", "アビスアイ", "ストームエメラルダ", "ムニキスゼロ", "テラスタル", "バトルパートナーズ", "151", "30TH"],
         "snkrdunk_with_url": "https://snkrdunk.com/apparels/721913",
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/721915",
         "homura_with_url": "https://kaitori-homura.com/products/3465",
         "homura_without_url": "https://kaitori-homura.com/products/3383",
         "min_valid_price": 6000,
         "max_valid_price": 25000
+    },
+    {
+        "id": "sp_box_tohoku",
+        "name": "スペシャルBOX ポケモンセンタートウホク",
+        "kw_general": "スペシャルBOX トウホク",
+        "kw_without": "",  # シュリンク無は対象外
+        "must_words": ["トウホク", "東北"],
+        "extra_ng_words": [
+            "ヒロシマ", "フクオカ", "広島", "福岡", "プロモなし", "プロモ抜き", "サプライのみ",
+            "デッキシールド", "スリーブ", "デッキケース", "ダメカン", "ストレージ", "ファイル"
+        ],
+        "snkrdunk_with_url": "https://snkrdunk.com/apparels/618442",
+        "snkrdunk_without_url": "",
+        "homura_with_url": "https://kaitori-homura.com/products/3326",
+        "homura_without_url": "",
+        "min_valid_price": 8500,
+        "max_valid_price": 25000
+    },
+    {
+        "id": "sp_box_hiroshima",
+        "name": "スペシャルBOX ポケモンセンターヒロシマ",
+        "kw_general": "スペシャルBOX ヒロシマ",
+        "kw_without": "",
+        "must_words": ["ヒロシマ", "広島"],
+        "extra_ng_words": [
+            "トウホク", "フクオカ", "東北", "福岡", "プロモなし", "プロモ抜き", "サプライのみ",
+            "デッキシールド", "スリーブ", "デッキケース", "ダメカン", "ストレージ", "ファイル"
+        ],
+        "snkrdunk_with_url": "https://snkrdunk.com/apparels/618443",
+        "snkrdunk_without_url": "",
+        "homura_with_url": "https://kaitori-homura.com/products/3324",
+        "homura_without_url": "",
+        "min_valid_price": 8500,
+        "max_valid_price": 25000
+    },
+    {
+        "id": "sp_box_fukuoka",
+        "name": "スペシャルBOX ポケモンセンターフクオカ",
+        "kw_general": "スペシャルBOX フクオカ",
+        "kw_without": "",
+        "must_words": ["フクオカ", "福岡"],
+        "extra_ng_words": [
+            "トウホク", "ヒロシマ", "東北", "広島", "プロモなし", "プロモ抜き", "サプライのみ",
+            "デッキシールド", "スリーブ", "デッキケース", "ダメカン", "ストレージ", "ファイル"
+        ],
+        "snkrdunk_with_url": "https://snkrdunk.com/apparels/618444",
+        "snkrdunk_without_url": "",
+        "homura_with_url": "https://kaitori-homura.com/products/3325",
+        "homura_without_url": "",
+        "min_valid_price": 8500,
+        "max_valid_price": 25000
+    },
+    {
+        "id": "30th_card_set_9",
+        "name": "30th CELEBRATION カードセット 9種セット",
+        "kw_general": "",  # ご指定によりメルカリ検索は行わない
+        "kw_without": "",
+        "must_words": [],
+        "extra_ng_words": [],
+        "snkrdunk_with_url": "",
+        "snkrdunk_without_url": "",
+        "homura_with_url": "https://kaitori-homura.com/products/7780",
+        "homura_without_url": "",
+        "min_valid_price": 9000,
+        "max_valid_price": 30000
     }
 ]
 
 COMMON_NG_WORDS = [
-    "空箱", "空き箱", "箱のみ", "パックのみ", "バラ", "1P", "5P", "10P", "1パック", "10パック",
-    "カートン", "セット", "まとめ", "オリパ", "確定", "サーチ", "開封済",
+    "空箱", "空き箱", "箱のみ", "パックのみ", "バラ", "1P", "5P", "10P", "1パック", "10パック", "15パック", "30パック",
+    "カートン", "まとめ", "オリパ", "確定", "サーチ", "開封済",
     "SAR", "SR", "AR", "UR", "MA", "MUR", "FUR", "プロモ", "PSA", "シングル",
     "ピカチュウ", "ゲンガー", "リザードン", "ミュウ", "ルギア", "カイリュー", "アクリル", "ケースのみ"
 ]
 
-NO_SHRINK_WORDS = ["シュリンクなし", "シュリンク無し", "シュリなし", "シュリ無し", "ペリペリ", "シュリンク無"]
-WITH_SHRINK_WORDS = ["シュリンク付き", "シュリンクつき", "シュリンク有", "シュリ付き", "未開封"]
+NO_SHRINK_WORDS = ["シュリンクなし", "シュリンク無し", "シュリなし", "シュリ無し", "ペリペリ", "シュリンク無", "シュリ無"]
+
+RETAIL_PRICES = (2090, 5400, 5500, 6000, 7200, 10800)
 
 DATA_FILE = "data.json"
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK_URL", "")
@@ -67,27 +175,26 @@ def get_usd_jpy_rate():
         return 157.0
 
 
-def is_valid_mercari_item(title, target, expect_shrink):
+def classify_mercari_item(title, target):
+    """タイトルから 'with_shrink' / 'without_shrink' / None を判定"""
     t_upper = title.upper()
 
     if not any(w.upper() in t_upper for w in target["must_words"]):
-        return False
+        return None
 
     for ng in COMMON_NG_WORDS + target["extra_ng_words"]:
         if ng.upper() in t_upper:
-            return False
+            return None
 
-    if re.search(r'(?<!\d)[2-9２-９]\s*(BOX|ボックス|箱|個|点)', t_upper):
-        return False
+    # 複数BOX売り（2BOX、3箱、2個セットなど）や「〇〇セット」の除外（「ローダーセット」等は許容するため数値＋セット等を弾く）
+    if re.search(r'(?<!\d)[2-9２-９]\s*(BOX|ボックス|箱|個|点|セット)', t_upper):
+        return None
+    if "セット" in t_upper and not any(ok in t_upper for ok in ["ローダー", "ケース"]):
+        return None
 
-    has_no_shrink_word = any(w in title for w in NO_SHRINK_WORDS)
-
-    if expect_shrink:
-        if has_no_shrink_word:
-            return False
-        return True
-    else:
-        return has_no_shrink_word
+    if any(w in title for w in NO_SHRINK_WORDS):
+        return "without_shrink"
+    return "with_shrink"
 
 
 def extract_mercari_price_jpy(raw_text, usd_rate, target):
@@ -107,55 +214,76 @@ def extract_mercari_price_jpy(raw_text, usd_rate, target):
     return None
 
 
-async def scrape_mercari_single_mode(page, keyword, target, usd_rate, expect_shrink):
+async def fetch_mercari_items_from_url(page, keyword):
     kw = quote(keyword)
     url = f"https://jp.mercari.com/search?keyword={kw}&status=sold_out&sort=created_time&order=desc"
-    prices = []
-    mode_label = "有" if expect_shrink else "無"
+    await page.goto(url, wait_until="domcontentloaded", timeout=40000)
+    await page.wait_for_timeout(4000)
+
+    # 4回スクロールして最大100〜120件ほど読み込む
+    for _ in range(4):
+        await page.evaluate("window.scrollBy(0, 1400)")
+        await page.wait_for_timeout(1200)
+
+    items_data = await page.evaluate("""() => {
+        const results = [];
+        const links = document.querySelectorAll('a[href*="/item/m"]');
+        links.forEach(a => {
+            let text = [a.getAttribute('aria-label') || '', a.innerText || ''].join(' ');
+            const imgs = a.querySelectorAll('img');
+            imgs.forEach(img => { text += ' ' + (img.getAttribute('alt') || ''); });
+            const thumb = a.querySelector('mer-item-thumbnail');
+            if (thumb) {
+                const p = thumb.getAttribute('price');
+                if (p) text += ' JPY_RAW:' + p;
+                text += ' ' + (thumb.getAttribute('item-name') || '');
+                if (thumb.shadowRoot) {
+                    text += ' ' + (thumb.shadowRoot.innerHTML || '');
+                }
+            }
+            text = text.replace(/のサムネイル/g, '').replace(/\\s+/g, ' ').trim();
+            results.push(text);
+        });
+        return results;
+    }""")
+    return items_data
+
+
+async def scrape_mercari_box(page, target, usd_rate):
+    if not target["kw_general"]:
+        return None, 0, None, 0
+
+    with_prices, without_prices = [], []
 
     try:
-        await page.goto(url, wait_until="domcontentloaded", timeout=40000)
-        await page.wait_for_timeout(5000)
-        await page.evaluate("window.scrollBy(0, 1500)")
-        await page.wait_for_timeout(2500)
-
-        items_data = await page.evaluate("""() => {
-            const results = [];
-            const links = document.querySelectorAll('a[href*="/item/m"]');
-            links.forEach(a => {
-                let text = [a.getAttribute('aria-label') || '', a.innerText || ''].join(' ');
-                const imgs = a.querySelectorAll('img');
-                imgs.forEach(img => { text += ' ' + (img.getAttribute('alt') || ''); });
-                const thumb = a.querySelector('mer-item-thumbnail');
-                if (thumb) {
-                    const p = thumb.getAttribute('price');
-                    if (p) text += ' JPY_RAW:' + p;
-                    text += ' ' + (thumb.getAttribute('item-name') || '');
-                    if (thumb.shadowRoot) {
-                        text += ' ' + (thumb.shadowRoot.innerHTML || '');
-                    }
-                }
-                text = text.replace(/のサムネイル/g, '').replace(/\\s+/g, ' ').trim();
-                results.push(text);
-            });
-            return results;
-        }""")
-
-        for raw_text in items_data[:45]:
+        # 1. まずは広いキーワードで100件ほど取得して振り分け
+        items = await fetch_mercari_items_from_url(page, target["kw_general"])
+        for raw_text in items:
             price = extract_mercari_price_jpy(raw_text, usd_rate, target)
             if not price:
                 continue
-            if is_valid_mercari_item(raw_text, target, expect_shrink):
-                prices.append(price)
+            status = classify_mercari_item(raw_text, target)
+            if status == "with_shrink":
+                with_prices.append(price)
+            elif status == "without_shrink" and target["kw_without"]:
+                without_prices.append(price)
 
-        if not prices and items_data:
-            print(f"    [Debug Mercari({mode_label}) 0件] 画面の先頭商品: {items_data[0][:90]} / {items_data[1][:90] if len(items_data)>1 else ''}")
+        # 2. もしシュリンク無が3件未満しか拾えなかった場合は、シュリンクなし専用検索で補充
+        if target["kw_without"] and len(without_prices) < 3:
+            wo_items = await fetch_mercari_items_from_url(page, target["kw_without"])
+            for raw_text in wo_items:
+                price = extract_mercari_price_jpy(raw_text, usd_rate, target)
+                if not price:
+                    continue
+                if classify_mercari_item(raw_text, target) == "without_shrink":
+                    without_prices.append(price)
 
-        med = int(statistics.median(prices[:10])) if prices else None
-        return med, len(prices)
+        med_w = int(statistics.median(with_prices[:15])) if with_prices else None
+        med_wo = int(statistics.median(without_prices[:15])) if without_prices else None
+        return med_w, len(with_prices), med_wo, len(without_prices)
     except Exception as e:
         print(f"  [Mercari Error] {e}")
-        return None, 0
+        return None, 0, None, 0
 
 
 async def scrape_snkrdunk_single(page, url, target):
@@ -163,14 +291,14 @@ async def scrape_snkrdunk_single(page, url, target):
         return None
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
-        await page.wait_for_timeout(4000)
+        await page.wait_for_timeout(3500)
         content = await page.inner_text("body")
         matches = re.findall(r'[¥￥]\s*([\d,]{4,6})\s*[~〜]', content)
         if not matches:
             matches = re.findall(r'[¥￥]\s*([\d,]{4,6})', content)
         for m in matches:
             val = int(m.replace(',', ''))
-            if val in (5500, 7200):
+            if val in RETAIL_PRICES:
                 continue
             if target["min_valid_price"] <= val <= target["max_valid_price"]:
                 return val
@@ -185,7 +313,7 @@ async def scrape_homura_single(page, url, target):
         return None
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
-        await page.wait_for_timeout(3500)
+        await page.wait_for_timeout(3000)
         content = await page.inner_text("body")
         m = re.search(r'買取(?:価格|金額)[^0-9]{0,20}([\d,]{4,6})', content)
         if m:
@@ -274,8 +402,7 @@ async def main():
 
         for target in TARGETS:
             print(f"=== Fetching {target['name']} ===")
-            m_with, cnt_w = await scrape_mercari_single_mode(page, target["kw_with"], target, usd_rate, True)
-            m_without, cnt_wo = await scrape_mercari_single_mode(page, target["kw_without"], target, usd_rate, False)
+            m_with, cnt_w, m_without, cnt_wo = await scrape_mercari_box(page, target, usd_rate)
             print(f"  [Mercari Result] 有: {m_with} ({cnt_w}件) / 無: {m_without} ({cnt_wo}件)")
 
             s_with = await scrape_snkrdunk_single(page, target["snkrdunk_with_url"], target)
@@ -290,13 +417,17 @@ async def main():
 
             new_entry["boxes"][target["id"]] = {
                 "name": target["name"],
-                "mercari_with": m_with or prev_box.get("mercari_with"),
-                "mercari_without": m_without or prev_box.get("mercari_without"),
+                "mercari_with": m_with if target["kw_general"] else None,
+                "mercari_without": m_without if target["kw_without"] else None,
                 "snkrdunk_with": s_with or prev_box.get("snkrdunk_with"),
                 "snkrdunk_without": s_without or prev_box.get("snkrdunk_without"),
                 "homura_with": h_with or prev_box.get("homura_with"),
                 "homura_without": h_without or prev_box.get("homura_without"),
             }
+            if target["kw_general"] and not new_entry["boxes"][target["id"]]["mercari_with"]:
+                new_entry["boxes"][target["id"]]["mercari_with"] = prev_box.get("mercari_with")
+            if target["kw_without"] and not new_entry["boxes"][target["id"]]["mercari_without"]:
+                new_entry["boxes"][target["id"]]["mercari_without"] = prev_box.get("mercari_without")
 
         await browser.close()
 
