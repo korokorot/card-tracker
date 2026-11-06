@@ -16,18 +16,26 @@ TARGETS = [
         "name": "MEGA 拡張パック「30th CELEBRATION」",
         "search_keyword": "30th CELEBRATION BOX",
         "must_words": ["30th", "CELEBRATION"],
-        "extra_ng_words": ["フューチャリスティック", "FUTURISTIC", "カードセット", "御三家", "ファイル", "デッキ"],
-        "min_valid_price": 4000,
+        "extra_ng_words": ["フューチャリスティック", "FUTURISTIC", "カードセット", "御三家", "ファイル", "デッキ", "エネルギー"],
+        "snkrdunk_with_url": "https://snkrdunk.com/apparels/881421",
+        "snkrdunk_without_url": "https://snkrdunk.com/apparels/881427",
+        "homura_with_url": "https://kaitori-homura.com/products/7237",
+        "homura_without_url": "https://kaitori-homura.com/products/7238",
+        "min_valid_price": 8000,
         "max_valid_price": 45000
     },
     {
         "id": "mega_dream_ex",
         "name": "MEGA ハイクラスパック「MEGAドリームex」",
         "search_keyword": "MEGAドリームex BOX",
-        "must_words": ["MEGAドリーム", "ドリームex"],
+        "must_words": ["MEGAドリーム", "メガドリーム", "ドリームex"],
         "extra_ng_words": ["デッキ", "ファイル"],
-        "min_valid_price": 4000,
-        "max_valid_price": 45000
+        "snkrdunk_with_url": "https://snkrdunk.com/apparels/721913",
+        "snkrdunk_without_url": "https://snkrdunk.com/apparels/721915",
+        "homura_with_url": "https://kaitori-homura.com/products/3465",
+        "homura_without_url": "https://kaitori-homura.com/products/3383",
+        "min_valid_price": 6000,
+        "max_valid_price": 35000
     }
 ]
 
@@ -35,7 +43,7 @@ COMMON_NG_WORDS = [
     "空箱", "空き箱", "箱のみ", "パックのみ", "バラ", "1p", "5p", "10p", "1パック",
     "カートン", "セット", "まとめ", "オリパ", "確定", "サーチ", "開封済",
     "SAR", "SR", "AR", "UR", "MA", "MUR", "FUR", "プロモ", "PSA", "シングル",
-    "ピカチュウ", "ゲンガー", "リザードン", "ミュウ", "アクリル", "ケースのみ"
+    "ピカチュウ", "ゲンガー", "リザードン", "ミュウ", "ルギア", "カイリュー", "アクリル", "ケース"
 ]
 
 NO_SHRINK_WORDS = ["シュリンクなし", "シュリンク無し", "シュリなし", "シュリ無し", "ペリペリ"]
@@ -44,25 +52,6 @@ WITH_SHRINK_WORDS = ["シュリンク付き", "シュリンクつき", "シュ�
 DATA_FILE = "data.json"
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK_URL", "")
 ALERT_THRESHOLD = 1000
-
-
-def extract_price(text):
-    if not text:
-        return None
-    # ¥記号や円がついている数字を優先抽出
-    matches = re.findall(r'[¥￥]\s*([\d,]{4,7})|([\d,]{4,7})\s*円', text)
-    for m in matches:
-        num_str = m[0] or m[1]
-        val = int(num_str.replace(',', ''))
-        if 3000 <= val <= 100000:
-            return val
-    # なければ通常の数値
-    nums = re.findall(r'[\d,]{4,7}', text)
-    for n in nums:
-        val = int(n.replace(',', ''))
-        if 3000 <= val <= 100000:
-            return val
-    return None
 
 
 def filter_mercari_title(title, target):
@@ -78,7 +67,8 @@ def filter_mercari_title(title, target):
         if ng.upper() in t_upper:
             return None
 
-    if re.search(r'[2-9２-９]\s*(BOX|ボックス|箱)', t_upper):
+    # 複数BOX売り（2BOX、3箱など）を除外
+    if re.search(r'[2-9２-９]\s*(BOX|ボックス|箱|個)', t_upper):
         return None
 
     if any(w in title for w in NO_SHRINK_WORDS):
@@ -99,21 +89,51 @@ async def scrape_mercari(page, target):
         await page.evaluate("window.scrollBy(0, 1200)")
         await page.wait_for_timeout(3000)
 
-        page_title = await page.title()
-        # 商品リンク（/item/m...）をすべて取得し、aria-labelや内部テキストから判定
-        links = await page.query_selector_all('a[href*="/item/m"]')
-        print(f"  [Mercari] Title: {page_title} | Found links: {len(links)}")
+        # Shadow DOMの内部や画像のalt属性まで含めて商品情報を丸ごと抜き出すJavaScript
+        items_data = await page.evaluate("""() => {
+            const results = [];
+            const links = document.querySelectorAll('a[href*="/item/m"]');
+            links.forEach(a => {
+                let text = [a.getAttribute('aria-label') || '', a.innerText || ''].join(' ');
+                const imgs = a.querySelectorAll('img');
+                imgs.forEach(img => { text += ' ' + (img.getAttribute('alt') || ''); });
+                const thumb = a.querySelector('mer-item-thumbnail');
+                if (thumb) {
+                    text += ' ' + (thumb.getAttribute('item-name') || '') + ' ¥' + (thumb.getAttribute('price') || '');
+                    if (thumb.shadowRoot) {
+                        text += ' ' + (thumb.shadowRoot.innerHTML || '');
+                    }
+                }
+                results.push(text.replace(/\\s+/g, ' ').trim());
+            });
+            return results;
+        }""")
 
-        for link in links[:45]:
-            aria = await link.get_attribute("aria-label") or ""
-            inner = await link.inner_text() or ""
-            full_text = f"{aria} {inner}".replace('\n', ' ')
+        print(f"  [Mercari] Extracted items: {len(items_data)}")
+        if items_data:
+            print(f"  [Mercari Sample] {items_data[0][:120]}")
 
-            price = extract_price(full_text)
-            if not price or not (target["min_valid_price"] <= price <= target["max_valid_price"]):
+        for raw_text in items_data[:45]:
+            # 価格の抽出（¥12,345 や price="12345" など）
+            nums = re.findall(r'(?:[¥￥]|price=[\'"]?)\s*([\d,]{4,7})|([\d,]{4,7})\s*円', raw_text)
+            price = None
+            for m in nums:
+                val = int((m[0] or m[1]).replace(',', ''))
+                if target["min_valid_price"] <= val <= target["max_valid_price"]:
+                    price = val
+                    break
+            if not price:
+                # 予備：単純な数値抽出
+                for n in re.findall(r'\b(\d{1,2},\d{3}|\d{4,5})\b', raw_text):
+                    val = int(n.replace(',', ''))
+                    if target["min_valid_price"] <= val <= target["max_valid_price"]:
+                        price = val
+                        break
+
+            if not price:
                 continue
 
-            status = filter_mercari_title(full_text, target)
+            status = filter_mercari_title(raw_text, target)
             if status == "with_shrink":
                 with_prices.append(price)
             elif status == "without_shrink":
@@ -128,80 +148,53 @@ async def scrape_mercari(page, target):
         return None, None
 
 
-async def scrape_snkrdunk(page, target):
-    kw = quote(target["search_keyword"].replace(" BOX", ""))
-    search_url = f"https://snkrdunk.com/search/result?keywords={kw}"
-    price_with, price_without = None, None
-
-    try:
-        await page.goto(search_url, wait_until="domcontentloaded", timeout=40000)
-        await page.wait_for_timeout(5000)
-        await page.evaluate("window.scrollBy(0, 800)")
-        await page.wait_for_timeout(2000)
-
-        page_title = await page.title()
-        content = await page.inner_text("body")
-        print(f"  [SNKRDUNK] Title: {page_title} | Text len: {len(content)}")
-
-        blocks = [b.strip() for b in content.split('\n') if b.strip()]
-        for i, line in enumerate(blocks):
-            if any(w.upper() in line.upper() for w in target["must_words"]):
-                if any(ng in line for ng in target["extra_ng_words"] + ["パック", "カートン", "シングル"]):
-                    continue
-                nearby = " ".join(blocks[max(0, i-2):min(len(blocks), i+6)])
-                p = extract_price(nearby)
-                if p and target["min_valid_price"] <= p <= target["max_valid_price"]:
-                    if "シュリンクなし" in line or "シュリンク無し" in line:
-                        if not price_without:
-                            price_without = p
-                    else:
-                        if not price_with:
-                            price_with = p
-        print(f"  [SNKRDUNK Result] 有: {price_with} / 無: {price_without}")
-        return price_with, price_without
-    except Exception as e:
-        print(f"  [SNKRDUNK Error] {e}")
-        return None, None
-
-
-async def scrape_homura(page, target):
-    kw = quote(target["must_words"][0])
-    url = f"https://kaitori-homura.com/products?q%5Bname_cont%5D={kw}"
-    price_with, price_without = None, None
-
+async def scrape_snkrdunk_single(page, url, target):
+    if not url:
+        return None
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
         await page.wait_for_timeout(4000)
         content = await page.inner_text("body")
-
-        # もし検索URLで見つからなければトップページから探す
-        if not any(w.upper() in content.upper() for w in target["must_words"]):
-            await page.goto("https://kaitori-homura.com/", wait_until="domcontentloaded", timeout=40000)
-            await page.wait_for_timeout(4000)
-            content = await page.inner_text("body")
-
-        page_title = await page.title()
-        print(f"  [Homura] Title: {page_title} | Text len: {len(content)}")
-
-        lines = [l.strip() for l in content.split('\n') if l.strip()]
-        for i, line in enumerate(lines):
-            if any(w.upper() in line.upper() for w in target["must_words"]):
-                if any(ng in line for ng in target["extra_ng_words"] + ["カートン", "パック"]):
-                    continue
-                nearby = " ".join(lines[i:min(len(lines), i+6)])
-                p = extract_price(nearby)
-                if p and target["min_valid_price"] <= p <= target["max_valid_price"]:
-                    if "シュリンクなし" in nearby or "シュリンク無し" in nearby or "シュリなし" in nearby:
-                        if not price_without:
-                            price_without = p
-                    else:
-                        if not price_with:
-                            price_with = p
-        print(f"  [Homura Result] 有: {price_with} / 無: {price_without}")
-        return price_with, price_without
+        # 「¥18,499~」や「購入手数料 ¥0 ¥18,499」のパターンから最安値を抽出
+        matches = re.findall(r'[¥￥]\s*([\d,]{4,6})\s*[~〜]', content)
+        if not matches:
+            matches = re.findall(r'[¥￥]\s*([\d,]{4,6})', content)
+        for m in matches:
+            val = int(m.replace(',', ''))
+            # 定価（5,500円や7,200円）を除外して実際の出品最安値を拾う
+            if val in (5500, 7200):
+                continue
+            if target["min_valid_price"] <= val <= target["max_valid_price"]:
+                return val
+        return None
     except Exception as e:
-        print(f"  [Homura Error] {e}")
-        return None, None
+        print(f"  [SNKRDUNK Error] {url}: {e}")
+        return None
+
+
+async def scrape_homura_single(page, url, target):
+    if not url:
+        return None
+    try:
+        await page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        await page.wait_for_timeout(3500)
+        content = await page.inner_text("body")
+        # 「買取価格（税込）： 18,500 円」や「買取金額（税込） ¥ 18,500」を最優先で探す
+        m = re.search(r'買取(?:価格|金額)[^0-9]{0,20}([\d,]{4,6})', content)
+        if m:
+            val = int(m.group(1).replace(',', ''))
+            if target["min_valid_price"] <= val <= target["max_valid_price"]:
+                return val
+
+        # 予備：ページ冒頭付近の「〇〇円」を探す
+        for m2 in re.findall(r'([\d,]{4,6})\s*円', content[:1500]):
+            val = int(m2.replace(',', ''))
+            if target["min_valid_price"] <= val <= target["max_valid_price"]:
+                return val
+        return None
+    except Exception as e:
+        print(f"  [Homura Error] {url}: {e}")
+        return None
 
 
 def check_and_notify(history, new_entry):
@@ -258,7 +251,6 @@ async def main():
     new_entry = {"timestamp": now_str, "boxes": {}}
 
     async with async_playwright() as p:
-        # 自動化検知を回避するオプション付きで起動
         browser = await p.chromium.launch(
             headless=True,
             args=["--disable-blink-features=AutomationControlled", "--no-sandbox"]
@@ -269,15 +261,20 @@ async def main():
             locale="ja-JP",
             timezone_id="Asia/Tokyo"
         )
-        # webdriverフラグを隠す
         await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         page = await context.new_page()
 
         for target in TARGETS:
             print(f"=== Fetching {target['name']} ===")
             m_with, m_without = await scrape_mercari(page, target)
-            s_with, s_without = await scrape_snkrdunk(page, target)
-            h_with, h_without = await scrape_homura(page, target)
+
+            s_with = await scrape_snkrdunk_single(page, target["snkrdunk_with_url"], target)
+            s_without = await scrape_snkrdunk_single(page, target["snkrdunk_without_url"], target)
+            print(f"  [SNKRDUNK Result] 有: {s_with} / 無: {s_without}")
+
+            h_with = await scrape_homura_single(page, target["homura_with_url"], target)
+            h_without = await scrape_homura_single(page, target["homura_without_url"], target)
+            print(f"  [Homura Result] 有: {h_with} / 無: {h_without}")
 
             prev_box = history[-1]["boxes"].get(target["id"], {}) if history else {}
 
