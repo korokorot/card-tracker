@@ -28,8 +28,8 @@ TARGETS = [
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/881427",
         "homura_with_url": "https://kaitori-homura.com/products/7237",
         "homura_without_url": "https://kaitori-homura.com/products/7238",
-        "min_valid_price": 13000,
-        "max_valid_price": 24000
+        "min_valid_price": 12000,
+        "max_valid_price": 35000  # 高騰時にも対応できるよう上限を広く確保
     },
     {
         "id": "storm_emeralda",
@@ -43,8 +43,8 @@ TARGETS = [
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/846050",
         "homura_with_url": "https://kaitori-homura.com/products/6933",
         "homura_without_url": "https://kaitori-homura.com/products/6934",
-        "min_valid_price": 5500,
-        "max_valid_price": 12500  # 2個セット(15,000円〜)の誤爆を物理的に遮断
+        "min_valid_price": 5000,
+        "max_valid_price": 22000
     },
     {
         "id": "abyss_eye",
@@ -58,8 +58,8 @@ TARGETS = [
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/806646",
         "homura_with_url": "https://kaitori-homura.com/products/6733",
         "homura_without_url": "https://kaitori-homura.com/products/6734",
-        "min_valid_price": 5000,
-        "max_valid_price": 11500  # 2個セットを遮断
+        "min_valid_price": 4500,
+        "max_valid_price": 20000
     },
     {
         "id": "munikis_zero",
@@ -73,8 +73,8 @@ TARGETS = [
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/743535",
         "homura_with_url": "https://kaitori-homura.com/products/5443",
         "homura_without_url": "https://kaitori-homura.com/products/5444",
-        "min_valid_price": 5000,
-        "max_valid_price": 11500  # 2個セットを遮断
+        "min_valid_price": 4500,
+        "max_valid_price": 20000
     },
     {
         "id": "mega_dream_ex",
@@ -88,8 +88,8 @@ TARGETS = [
         "snkrdunk_without_url": "https://snkrdunk.com/apparels/721915",
         "homura_with_url": "https://kaitori-homura.com/products/3465",
         "homura_without_url": "https://kaitori-homura.com/products/3383",
-        "min_valid_price": 8000,
-        "max_valid_price": 16500  # 2個セット(20,000円〜)を遮断
+        "min_valid_price": 6000,
+        "max_valid_price": 25000
     },
     {
         "id": "sp_box_tohoku",
@@ -105,8 +105,8 @@ TARGETS = [
         "snkrdunk_without_url": "",
         "homura_with_url": "https://kaitori-homura.com/products/3326",
         "homura_without_url": "",
-        "min_valid_price": 9000,
-        "max_valid_price": 18000
+        "min_valid_price": 8500,
+        "max_valid_price": 25000
     },
     {
         "id": "sp_box_hiroshima",
@@ -122,8 +122,8 @@ TARGETS = [
         "snkrdunk_without_url": "",
         "homura_with_url": "https://kaitori-homura.com/products/3324",
         "homura_without_url": "",
-        "min_valid_price": 9500,
-        "max_valid_price": 19000
+        "min_valid_price": 8500,
+        "max_valid_price": 25000
     },
     {
         "id": "sp_box_fukuoka",
@@ -139,15 +139,15 @@ TARGETS = [
         "snkrdunk_without_url": "",
         "homura_with_url": "https://kaitori-homura.com/products/3325",
         "homura_without_url": "",
-        "min_valid_price": 9000,
-        "max_valid_price": 18000
+        "min_valid_price": 8500,
+        "max_valid_price": 25000
     },
     {
         "id": "30th_card_set_9",
         "name": "30th CELEBRATION カードセット 9種セット",
         "skip_mercari": True,
         "allow_set_word": True,
-        "ignore_shrink_and_box_count": True,  # 9種セットは「ボックス数:9個」「シュリンク:なし」設定でも正常品として通す
+        "ignore_shrink_and_box_count": True,
         "kw_general": ["30th カードセット 9種 未開封", "30th 9種 輸送箱未開封"],
         "kw_without": "",
         "must_words": ["9種", "９種", "コンプ", "全種"],
@@ -160,8 +160,8 @@ TARGETS = [
         "snkrdunk_without_url": "",
         "homura_with_url": "https://kaitori-homura.com/products/7780",
         "homura_without_url": "",
-        "min_valid_price": 12000,
-        "max_valid_price": 21000
+        "min_valid_price": 11000,
+        "max_valid_price": 30000
     }
 ]
 
@@ -173,7 +173,6 @@ COMMON_NG_WORDS = [
 ]
 
 NO_SHRINK_WORDS = ["シュリンクなし", "シュリンク無し", "シュリなし", "シュリ無し", "ペリペリ", "シュリンク無", "シュリ無"]
-# 「シュリンクなしではありません」等の否定表現（実際はシュリンク有）を見分けるワード
 FALSE_NO_SHRINK_WORDS = ["シュリンクなしでは", "シュリンク無しでは", "シュリンク付き", "シュリンクあり", "シュリンク有"]
 
 RETAIL_PRICES = (2090, 5400, 5500, 6000, 7200, 10800)
@@ -191,15 +190,13 @@ def get_usd_jpy_rate():
         return 157.0
 
 
-def robust_median(prices):
-    """外れ値（極端に高い・安いノイズ）を上下から切り落としてから中央値を出す"""
+def safe_median(prices):
+    """件数が少ない時（9件以下）はそのまま中央値をとり、10件以上ある時だけ最大・最小の1件ずつを除外する"""
     if not prices:
         return None
     s = sorted(prices[:15])
-    n = len(s)
-    if n >= 5:
-        cut = max(1, n // 5)  # 上下20%の外れ値をカット
-        s = s[cut:-cut]
+    if len(s) >= 10:
+        s = s[1:-1]
     return int(statistics.median(s))
 
 
@@ -212,7 +209,6 @@ def classify_item_text(title, target):
     for ng in COMMON_NG_WORDS + target["extra_ng_words"]:
         if ng.upper() in t_upper:
             return None
-    # 複数個表記を厳密に除外（2BOX、2箱、2個、×2、2点など）
     if re.search(r'(?<!\d)[2-9２-９]\s*(BOX|ボックス|箱|個|点|セット)', t_upper):
         return None
     if re.search(r'[×✕xX]\s*[2-9２-９]', t_upper):
@@ -221,7 +217,6 @@ def classify_item_text(title, target):
         if "セット" in t_upper and not any(ok in t_upper for ok in ["ローダー", "ケース"]):
             return None
 
-    # 「シュリンクなし」判定（ただし「シュリンク付き」等が同時に入っている場合は除外）
     if any(w in title for w in NO_SHRINK_WORDS):
         if any(fw in title for fw in FALSE_NO_SHRINK_WORDS):
             return "with_shrink"
@@ -230,13 +225,12 @@ def classify_item_text(title, target):
 
 
 def filter_without_shrink_outliers(without_prices, with_median):
-    """【物理法則ガード】シュリンク無の価格がシュリンク有の95%（または-300円）を超えているデータは誤混入として除外"""
+    """シュリンク無のリストに紛れ込んだ「シュリンク有と同額以上のデータ（表記トリックや2箱セット）」を除外"""
     if not without_prices:
         return []
     if with_median:
-        max_allowed = min(int(with_median * 0.95), with_median - 300)
-        filtered = [p for p in without_prices if p <= max_allowed]
-        return filtered
+        max_allowed = min(int(with_median * 0.96), with_median - 200)
+        return [p for p in without_prices if p <= max_allowed]
     return without_prices
 
 
@@ -330,10 +324,9 @@ async def scrape_mercari_box(page, target, usd_rate):
                     if classify_item_text(raw_text, target) == "without_shrink":
                         without_prices.append(price)
 
-        med_w = robust_median(with_prices)
-        # シュリンク無から「シュリンク有以上の異常値」を除外して中央値を算出
+        med_w = safe_median(with_prices)
         clean_wo = filter_without_shrink_outliers(without_prices, med_w)
-        med_wo = robust_median(clean_wo)
+        med_wo = safe_median(clean_wo)
         return med_w, len(with_prices), med_wo, len(clean_wo)
     except Exception as e:
         print(f"  [Mercari Error] {e}")
@@ -381,7 +374,6 @@ async def inspect_yahoo_item_detail(page, item_url, initial_status, target):
         await page.wait_for_timeout(1200)
         body_text = await page.inner_text("body")
 
-        # 9種セット以外では「ボックス数：2個以上」を厳密除外
         if not target.get("ignore_shrink_and_box_count"):
             m_box = re.search(r'ボックス数\s*([0-9０-９]+)\s*個', body_text)
             if m_box:
@@ -401,7 +393,6 @@ async def inspect_yahoo_item_detail(page, item_url, initial_status, target):
         if any(bad in desc_check for bad in ["プロモなし", "プロモ抜き", "空箱", "空き箱", "パックのみ", "1BOX分", "封入率一致"]):
             return None, "説明文NGワード"
 
-        # 9種セット以外では詳細欄の「シュリンク：あり/なし」を反映
         if not target.get("ignore_shrink_and_box_count"):
             m_shrink = re.search(r'シュリンク\s*(あり|なし|有|無)', body_text)
             if m_shrink:
@@ -476,10 +467,9 @@ async def scrape_yahoo_box(page, target):
         if rejected_reasons:
             print(f"    [Yahoo Detail 除外] {', '.join(rejected_reasons[:6])}")
 
-        med_w = robust_median(with_prices)
-        # シュリンク無から「シュリンク有以上の異常値」を除外
+        med_w = safe_median(with_prices)
         clean_wo = filter_without_shrink_outliers(without_prices, med_w)
-        med_wo = robust_median(clean_wo)
+        med_wo = safe_median(clean_wo)
         return med_w, len(with_prices), med_wo, len(clean_wo)
     except Exception as e:
         print(f"  [Yahoo Error] {e}")
@@ -487,34 +477,38 @@ async def scrape_yahoo_box(page, target):
 
 
 async def scrape_snkrdunk_single(page, url, target, max_cap=None):
-    """スニダンで2個セット(倍額)や関連商品を拾わないよう、ページ先頭の単品最安値を狙い撃ちする"""
+    """スニダンの画面構造（1個タイル、または売買履歴の1個）をピンポイントで狙い撃ちする"""
     if not url:
         return None
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=40000)
         await page.wait_for_timeout(3500)
         content = await page.inner_text("body")
-
-        # 関連商品や複数個セットが並ぶページ下部を切り捨て、先頭1500文字以内を優先探索
-        top_content = content[:1500]
         upper_bound = min(target["max_valid_price"], max_cap) if max_cap else target["max_valid_price"]
 
-        # 「1個 ¥7,400〜」のような表記から抽出（2個セット等の文字の直後にある価格は除外）
-        matches = re.findall(r'(?<!セット\s)(?<!個\s)[¥￥]\s*([\d,]{4,6})\s*[~〜]', top_content)
-        if not matches:
-            matches = re.findall(r'[¥￥]\s*([\d,]{4,6})', top_content)
-
-        valid_vals = []
-        for m in matches:
-            val = int(m.replace(',', ''))
-            if val in RETAIL_PRICES:
-                continue
+        # 1. 最優先：個数選択タイルの「1個(99+) ¥9,150〜」をピンポイント抽出（11個などに反応しないよう (?<!\d) を付与）
+        m_tile = re.search(r'(?<!\d)1個\s*(?:\([0-9+]+\))?\s*[¥￥]\s*([\d,]{4,6})\s*[~〜]', content)
+        if m_tile:
+            val = int(m_tile.group(1).replace(',', ''))
             if target["min_valid_price"] <= val <= upper_bound:
-                valid_vals.append(val)
+                return val
 
-        # 複数個セット（2個・3個）は必ず単品より高いため、有効範囲内の最小値（1個単品の最安値）を採用
-        if valid_vals:
-            return min(valid_vals)
+        # 2. 次点：「1個」が「出品待ち」だった場合、下部の売買履歴「〇分前 1個 新品S ¥9,150」の直近3件の中央値を採用
+        hist_matches = re.findall(r'(?:分前|時間前|日前)\s+1個\s+\S+\s+[¥￥]\s*([\d,]{4,6})', content)
+        hist_vals = [
+            int(m.replace(',', '')) for m in hist_matches
+            if target["min_valid_price"] <= int(m.replace(',', '')) <= upper_bound
+        ]
+        if hist_vals:
+            return int(statistics.median(hist_vals[:3]))
+
+        # 3. 最終フォールバック：「2個」という文字が登場する前のエリア（メイン最安値表示）からのみ抽出
+        before_two_box = re.split(r'(?<!\d)2個\s*\(', content)[0]
+        for m in re.findall(r'[¥￥]\s*([\d,]{4,6})\s*[~〜]', before_two_box):
+            val = int(m.replace(',', ''))
+            if val not in RETAIL_PRICES and target["min_valid_price"] <= val <= upper_bound:
+                return val
+
         return None
     except Exception as e:
         print(f"  [SNKRDUNK Error] {url}: {e}")
@@ -559,13 +553,13 @@ async def scrape_homura_single(page, url, target):
 
 
 def apply_spike_guard(new_val, prev_val, label=""):
-    """前回比で±30%以上の急激なジャンプ（2個セット誤爆などの外れ値）を検知してブロック"""
+    """前回比で+50%超（2個セット誤爆等）または-35%超の異常ジャンプのみをブロック"""
     if new_val is None:
         return prev_val
     if prev_val is None:
         return new_val
     ratio = new_val / prev_val
-    if ratio > 1.30 or ratio < 0.70:
+    if ratio > 1.50 or ratio < 0.65:
         print(f"    [外れ値ガード発動] {label}: 前回{prev_val}円 → 今回{new_val}円 (変動が大きすぎるため前回値を維持)")
         return prev_val
     return new_val
@@ -581,12 +575,11 @@ def sanitize_past_history(history):
             b30["mercari_without"] = None
 
         for bid, bdata in boxes.items():
-            # スニダン・メルカリ・Yahooで「シュリンク無」が「シュリンク有」を超えている異常記録を補正
             for prefix in ("mercari", "yahoo", "snkrdunk"):
                 w_val = bdata.get(f"{prefix}_with")
                 wo_val = bdata.get(f"{prefix}_without")
                 if w_val and wo_val and wo_val >= w_val:
-                    bdata[f"{prefix}_without"] = int(round((w_val * 0.85) / 100.0) * 100)
+                    bdata[f"{prefix}_without"] = int(round((w_val * 0.82) / 100.0) * 100)
 
 
 def check_and_notify(history, new_entry):
@@ -644,7 +637,6 @@ async def main():
         except Exception:
             history = []
 
-    # 過去履歴の異常値（15,949円など）を自動クリーンアップ
     sanitize_past_history(history)
 
     new_entry = {"timestamp": now_str, "boxes": {}}
@@ -672,7 +664,6 @@ async def main():
             print(f"  [Yahoo Result]   有: {y_with} ({y_cnt_w}件) / 無: {y_without} ({y_cnt_wo}件)")
 
             s_with = await scrape_snkrdunk_single(page, target["snkrdunk_with_url"], target)
-            # スニダン無は「スニダン有の価格」を上限キャップとして渡し、2個セット誤爆を完全に防ぐ
             s_wo_cap = int(s_with * 0.96) if s_with else None
             s_without = await scrape_snkrdunk_single(page, target["snkrdunk_without_url"], target, max_cap=s_wo_cap)
             print(f"  [SNKRDUNK Result] 有: {s_with} / 無: {s_without}")
