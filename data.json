@@ -40,7 +40,7 @@
         "mercari_with": 8400,
         "mercari_without": 7600,
         "yahoo_with": 8050,
-        "yahoo_without": 8300,
+        "yahoo_without": 6600,
         "snkrdunk_with": 7777,
         "snkrdunk_without": 7400,
         "homura_with": 7300,
@@ -332,14 +332,14 @@
         "yahoo_with": 8990,
         "yahoo_without": 7500,
         "snkrdunk_with": 9150,
-        "snkrdunk_without": 15949,
+        "snkrdunk_without": 7500,
         "homura_with": 8800,
         "homura_without": 7800
       },
       "abyss_eye": {
         "name": "MEGA 拡張パック「アビスアイ」",
         "mercari_with": 8400,
-        "mercari_without": 8400,
+        "mercari_without": 6900,
         "yahoo_with": 7999,
         "yahoo_without": 7000,
         "snkrdunk_with": 7290,
@@ -407,6 +407,110 @@
         "mercari_with": null,
         "mercari_without": null,
         "yahoo_with": 15500,
+        "yahoo_without": null,
+        "snkrdunk_with": null,
+        "snkrdunk_without": null,
+        "homura_with": 14300,
+        "homura_without": null
+      }
+    }
+  },
+  {
+    "timestamp": "2026-11-08 00:13",
+    "boxes": {
+      "30th_celebration": {
+        "name": "MEGA 拡張パック「30th CELEBRATION」",
+        "mercari_with": null,
+        "mercari_without": null,
+        "yahoo_with": 20650,
+        "yahoo_without": 16500,
+        "snkrdunk_with": 20800,
+        "snkrdunk_without": 18000,
+        "homura_with": 21000,
+        "homura_without": 15000
+      },
+      "storm_emeralda": {
+        "name": "MEGA 拡張パック「ストームエメラルダ」",
+        "mercari_with": 9400,
+        "mercari_without": 7100,
+        "yahoo_with": 8900,
+        "yahoo_without": 7400,
+        "snkrdunk_with": 9150,
+        "snkrdunk_without": 7200,
+        "homura_with": 8800,
+        "homura_without": 7800
+      },
+      "abyss_eye": {
+        "name": "MEGA 拡張パック「アビスアイ」",
+        "mercari_with": 8400,
+        "mercari_without": 7800,
+        "yahoo_with": 7999,
+        "yahoo_without": 7040,
+        "snkrdunk_with": 7299,
+        "snkrdunk_without": 6770,
+        "homura_with": 8000,
+        "homura_without": 6500
+      },
+      "munikis_zero": {
+        "name": "MEGA 拡張パック「ムニキスゼロ」",
+        "mercari_with": 8300,
+        "mercari_without": 7450,
+        "yahoo_with": 8100,
+        "yahoo_without": 6700,
+        "snkrdunk_with": 7589,
+        "snkrdunk_without": 7249,
+        "homura_with": 7300,
+        "homura_without": 6600
+      },
+      "mega_dream_ex": {
+        "name": "MEGA ハイクラスパック「MEGAドリームex」",
+        "mercari_with": 12600,
+        "mercari_without": 10700,
+        "yahoo_with": 12390,
+        "yahoo_without": 10500,
+        "snkrdunk_with": 11998,
+        "snkrdunk_without": 10000,
+        "homura_with": 11900,
+        "homura_without": 10800
+      },
+      "sp_box_tohoku": {
+        "name": "スペシャルBOX ポケモンセンタートウホク",
+        "mercari_with": 13100,
+        "mercari_without": null,
+        "yahoo_with": 13350,
+        "yahoo_without": null,
+        "snkrdunk_with": 12500,
+        "snkrdunk_without": null,
+        "homura_with": 10500,
+        "homura_without": null
+      },
+      "sp_box_hiroshima": {
+        "name": "スペシャルBOX ポケモンセンターヒロシマ",
+        "mercari_with": 14200,
+        "mercari_without": null,
+        "yahoo_with": 15000,
+        "yahoo_without": null,
+        "snkrdunk_with": 13780,
+        "snkrdunk_without": null,
+        "homura_with": 11000,
+        "homura_without": null
+      },
+      "sp_box_fukuoka": {
+        "name": "スペシャルBOX ポケモンセンターフクオカ",
+        "mercari_with": 13500,
+        "mercari_without": null,
+        "yahoo_with": 13449,
+        "yahoo_without": null,
+        "snkrdunk_with": 12489,
+        "snkrdunk_without": null,
+        "homura_with": 10000,
+        "homura_without": null
+      },
+      "30th_card_set_9": {
+        "name": "30th CELEBRATION カードセット 9種セット",
+        "mercari_with": null,
+        "mercari_without": null,
+        "yahoo_with": 15850,
         "yahoo_without": null,
         "snkrdunk_with": null,
         "snkrdunk_without": null,
