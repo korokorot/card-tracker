@@ -114,27 +114,22 @@
     }
     .tab.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
 
-    /* タップでグラフのON/OFFを切り替える価格カード */
+    /* 価格カード：すべて同じ明るさ・枠線に統一し、右上のボタンだけでON/OFFを表現 */
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
     .card {
-      background: var(--card); padding: 9px 10px; border-radius: 10px;
-      border: 1.5px solid var(--border); cursor: pointer; user-select: none;
-      transition: all 0.15s ease; position: relative; opacity: 0.6;
-    }
-    .card.active-line {
-      opacity: 1;
-      background: #233047;
+      background: var(--card); padding: 10px; border-radius: 10px;
+      border: 1px solid var(--border); cursor: pointer; user-select: none;
     }
     .card-top {
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
     }
-    .card-title { font-size: 11px; color: var(--sub); font-weight: bold; }
-    .card.active-line .card-title { color: var(--text); }
-    .line-badge {
-      font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: bold;
+    .card-title { font-size: 11px; color: var(--sub); }
+    .line-btn {
+      font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold;
       background: #0f172a; color: var(--sub); border: 1px solid var(--border);
+      white-space: nowrap;
     }
-    .price { font-size: 15px; font-weight: bold; }
+    .price { font-size: 15px; font-weight: bold; color: var(--text); }
     .sub-note { font-size: 9px; color: var(--sub); margin-top: 3px; }
     
     .chart-box { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; }
@@ -188,7 +183,7 @@
   <!-- 下部：スワイプで見る個別グラフ＆履歴 -->
   <div class="section-title" id="detail-section">
     <span>📊 個別BOX 相場推移＆履歴</span>
-    <span class="section-sub">※カードをタップでグラフに線を追加/解除</span>
+    <span class="section-sub">※カードのボタンでグラフON/OFF</span>
   </div>
   <div class="tabs" id="box-tabs"></div>
   <div class="grid" id="price-cards"></div>
@@ -229,7 +224,7 @@ let currentBoxId = "30th_celebration";
 let chartRangeDays = 0;
 let chartInstance = null;
 
-// 初期状態でグラフに表示するキー（基本はシュリンク有の4本をON）
+// 初期状態でグラフに表示するキー（シュリンク有の4本をON）
 let activeChartKeys = new Set([
   "mercari_with",
   "yahoo_with",
@@ -237,7 +232,6 @@ let activeChartKeys = new Set([
   "homura_with"
 ]);
 
-// 全8種類のデータ定義（シュリンク有は実線、シュリンク無は点線）
 const SERIES_CONFIG = [
   { key: "mercari_with",     label: "メルカリ (有)",     shortLabel: "メルカリ(有)", color: "#ef4444", dash: [],    feeRate: 0.9,  noteText: "" },
   { key: "mercari_without",  label: "メルカリ (無)",     shortLabel: "メルカリ(無)", color: "#f87171", dash: [5,4], feeRate: 0.9,  noteText: "" },
@@ -291,7 +285,6 @@ function setChartRange(days) {
 
 function toggleChartLine(key) {
   if (activeChartKeys.has(key)) {
-    // すべて消えてしまうのを防ぐため最低1本は残す
     if (activeChartKeys.size > 1) activeChartKeys.delete(key);
   } else {
     activeChartKeys.add(key);
@@ -387,13 +380,14 @@ function renderAll() {
 
   document.getElementById("chart-title").textContent = `📈 ${masterInfo.name || ""}（定¥${(masterInfo.retail||0).toLocaleString()}）`;
 
-  // 8枚の価格カードを描画（タップでグラフのON/OFF）
+  // カード自体はすべて元の明るく見やすいデザインに統一し、右上のボタンのみ色を変える
   document.getElementById("price-cards").innerHTML = SERIES_CONFIG.map(cfg => {
     const val = currBox[cfg.key];
     const isOn = activeChartKeys.has(cfg.key);
-    const borderStyle = isOn ? `border-color: ${cfg.color}; box-shadow: 0 0 0 1px ${cfg.color}40;` : "";
-    const badgeStyle = isOn ? `background: ${cfg.color}25; color: ${cfg.color}; border-color: ${cfg.color};` : "";
-    const badgeText = isOn ? (cfg.dash.length ? "📈点線ON" : "📈実線ON") : "非表示";
+    const btnStyle = isOn
+      ? `background: ${cfg.color}25; color: ${cfg.color}; border-color: ${cfg.color};`
+      : "";
+    const btnText = isOn ? "📈 ON" : "OFF";
 
     let note = cfg.noteText;
     if (cfg.feeRate && val) {
@@ -402,10 +396,10 @@ function renderAll() {
     }
 
     return `
-      <div class="card ${isOn ? 'active-line' : ''}" style="${borderStyle}" onclick="toggleChartLine('${cfg.key}')">
+      <div class="card" onclick="toggleChartLine('${cfg.key}')">
         <div class="card-top">
           <span class="card-title">${cfg.label}</span>
-          <span class="line-badge" style="${badgeStyle}">${badgeText}</span>
+          <span class="line-btn" style="${btnStyle}">${btnText}</span>
         </div>
         <div style="display:flex; align-items:baseline; gap:6px;">
           <span class="price">${fmt(val)}</span>
@@ -419,7 +413,6 @@ function renderAll() {
   const chartData = getFilteredChartData();
   const labels = chartData.map(d => d.timestamp.slice(5, 16));
 
-  // 選択（ON）になっている系列だけをグラフ化
   const activeConfigs = SERIES_CONFIG.filter(cfg => activeChartKeys.has(cfg.key));
   const allVisibleValues = [];
 
@@ -441,8 +434,6 @@ function renderAll() {
     };
   });
 
-  // 縦軸（Y軸）の過剰な拡大を防ぐためのスケール計算
-  // 価格差がわずか数百円のときでも、最低±18%（または±1,800円）の幅を持たせて自然な見た目にする
   let yMin = undefined;
   let yMax = undefined;
   if (allVisibleValues.length > 0) {
@@ -450,7 +441,7 @@ function renderAll() {
     const maxVal = Math.max(...allVisibleValues);
     const center = (minVal + maxVal) / 2;
     const actualSpan = maxVal - minVal;
-    const minTargetSpan = Math.max(center * 0.25, 2500); // 最低でも全体の25%幅または2,500円幅を確保
+    const minTargetSpan = Math.max(center * 0.25, 2500);
     const halfSpan = Math.max(actualSpan * 0.75, minTargetSpan / 2);
 
     yMin = Math.max(0, Math.floor((center - halfSpan) / 500) * 500);
