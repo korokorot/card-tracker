@@ -12,8 +12,8 @@
       --text: #f8fafc;
       --sub: #94a3b8;
       --accent: #38bdf8;
-      --plus: #22c55e;   /* プラス（上昇・利益）＝ 緑 */
-      --minus: #ef4444;  /* マイナス（下落・赤字）＝ 赤 */
+      --plus: #22c55e;
+      --minus: #ef4444;
       --border: #334155;
     }
     * { box-sizing: border-box; }
@@ -44,7 +44,6 @@
     }
     .mode-btn.active { background: var(--accent); color: #0f172a; }
 
-    /* 上部：スマホ1画面に収まる5列比較テーブル */
     .summary-wrap {
       background: var(--card); border-radius: 10px;
       border: 1px solid var(--border); margin-bottom: 18px; overflow: hidden;
@@ -106,7 +105,6 @@
       .mini-diff { font-size: 10px; }
     }
 
-    /* 下部：個別詳細エリア */
     .tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
     .tab {
       padding: 6px 9px; border-radius: 8px; border: 1px solid var(--border);
@@ -114,7 +112,6 @@
     }
     .tab.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
 
-    /* 価格カード：すべて同じ明るさ・枠線に統一し、右上のボタンだけでON/OFFを表現 */
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
     .card {
       background: var(--card); padding: 10px; border-radius: 10px;
@@ -164,7 +161,6 @@
   </div>
   <div class="updated" id="last-updated">データ読込中...</div>
 
-  <!-- 一番上：スマホ1画面に収まる5列一覧表 -->
   <div class="summary-wrap">
     <table class="summary-table" id="summary-table">
       <thead>
@@ -180,7 +176,6 @@
     </table>
   </div>
 
-  <!-- 下部：スワイプで見る個別グラフ＆履歴 -->
   <div class="section-title" id="detail-section">
     <span>📊 個別BOX 相場推移＆履歴</span>
     <span class="section-sub">※カードのボタンでグラフON/OFF</span>
@@ -224,7 +219,6 @@ let currentBoxId = "30th_celebration";
 let chartRangeDays = 0;
 let chartInstance = null;
 
-// 初期状態でグラフに表示するキー（シュリンク有の4本をON）
 let activeChartKeys = new Set([
   "mercari_with",
   "yahoo_with",
@@ -252,7 +246,8 @@ const BOX_MASTER = [
   { id: "sp_box_tohoku", name: "SPBOX トウホク", short: "SP トウホク", cat: "スペシャルBOX・記念セット", retail: 2090 },
   { id: "sp_box_hiroshima", name: "SPBOX ヒロシマ", short: "SP ヒロシマ", cat: "スペシャルBOX・記念セット", retail: 2090 },
   { id: "sp_box_fukuoka", name: "SPBOX フクオカ", short: "SP フクオカ", cat: "スペシャルBOX・記念セット", retail: 2090 },
-  { id: "30th_card_set_9", name: "30th 9種セット", short: "30th 9種セット", cat: "スペシャルBOX・記念セット", retail: 10800 }
+  { id: "30th_card_set_9", name: "30th 9種セット", short: "30th 9種セット", cat: "スペシャルBOX・記念セット", retail: 10800 },
+  { id: "30th_deck_espeon_umbreon", name: "30th エーフィ・ブラッキー", short: "エーフィ・ブラッキー", cat: "スペシャルBOX・記念セット", retail: 6600 }
 ];
 
 function fmt(val) {
@@ -380,7 +375,6 @@ function renderAll() {
 
   document.getElementById("chart-title").textContent = `📈 ${masterInfo.name || ""}（定¥${(masterInfo.retail||0).toLocaleString()}）`;
 
-  // カード自体はすべて元の明るく見やすいデザインに統一し、右上のボタンのみ色を変える
   document.getElementById("price-cards").innerHTML = SERIES_CONFIG.map(cfg => {
     const val = currBox[cfg.key];
     const isOn = activeChartKeys.has(cfg.key);
