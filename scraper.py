@@ -29,7 +29,7 @@ TARGETS = [
         "homura_with_url": "https://kaitori-homura.com/products/7237",
         "homura_without_url": "https://kaitori-homura.com/products/7238",
         "min_valid_price": 12000,
-        "max_valid_price": 35000  # 高騰時にも対応できるよう上限を広く確保
+        "max_valid_price": 35000
     },
     {
         "id": "storm_emeralda",
@@ -162,6 +162,28 @@ TARGETS = [
         "homura_without_url": "",
         "min_valid_price": 11000,
         "max_valid_price": 30000
+    },
+    {
+        "id": "30th_deck_espeon_umbreon",
+        "name": "30th プレミアムデッキセット エーフィ・ブラッキー",
+        "skip_mercari": True,
+        "allow_set_word": True,
+        "ignore_shrink_and_box_count": True,  # テープ止め仕様のため「シュリンク:なし」設定でも未開封として通す
+        "kw_general": ["30th デッキセット エーフィ ブラッキー 未開封", "プレミアムデッキセット エーフィ ブラッキー"],
+        "kw_without": "",
+        "must_words": ["エーフィ", "ブラッキー"],
+        "require_unopened": True,
+        "extra_ng_words": [
+            "フューチャリスティック", "FUTURISTIC", "カードセット", "9種", "９種", "拡張パック",
+            "サプライのみ", "デッキのみ", "ダメカン", "スリーブ", "デッキシールド", "デッキケース",
+            "ファイル", "コイン", "マット", "エーフィのみ", "ブラッキーのみ"
+        ],
+        "snkrdunk_with_url": "https://snkrdunk.com/apparels/881423",
+        "snkrdunk_without_url": "",
+        "homura_with_url": "https://kaitori-homura.com/products/7255",
+        "homura_without_url": "",
+        "min_valid_price": 9000,
+        "max_valid_price": 25000
     }
 ]
 
@@ -175,7 +197,7 @@ COMMON_NG_WORDS = [
 NO_SHRINK_WORDS = ["シュリンクなし", "シュリンク無し", "シュリなし", "シュリ無し", "ペリペリ", "シュリンク無", "シュリ無"]
 FALSE_NO_SHRINK_WORDS = ["シュリンクなしでは", "シュリンク無しでは", "シュリンク付き", "シュリンクあり", "シュリンク有"]
 
-RETAIL_PRICES = (2090, 5400, 5500, 6000, 7200, 10800)
+RETAIL_PRICES = (2090, 5400, 5500, 6000, 6600, 7200, 10800)
 
 DATA_FILE = "data.json"
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK_URL", "")
@@ -191,7 +213,6 @@ def get_usd_jpy_rate():
 
 
 def safe_median(prices):
-    """件数が少ない時（9件以下）はそのまま中央値をとり、10件以上ある時だけ最大・最小の1件ずつを除外する"""
     if not prices:
         return None
     s = sorted(prices[:15])
@@ -217,7 +238,7 @@ def classify_item_text(title, target):
         if "セット" in t_upper and not any(ok in t_upper for ok in ["ローダー", "ケース"]):
             return None
 
-    if any(w in title for w in NO_SHRINK_WORDS):
+    if not target.get("ignore_shrink_and_box_count") and any(w in title for w in NO_SHRINK_WORDS):
         if any(fw in title for fw in FALSE_NO_SHRINK_WORDS):
             return "with_shrink"
         return "without_shrink"
@@ -225,7 +246,6 @@ def classify_item_text(title, target):
 
 
 def filter_without_shrink_outliers(without_prices, with_median):
-    """シュリンク無のリストに紛れ込んだ「シュリンク有と同額以上のデータ（表記トリックや2箱セット）」を除外"""
     if not without_prices:
         return []
     if with_median:
@@ -477,7 +497,6 @@ async def scrape_yahoo_box(page, target):
 
 
 async def scrape_snkrdunk_single(page, url, target, max_cap=None):
-    """スニダンの画面構造（1個タイル、または売買履歴の1個）をピンポイントで狙い撃ちする"""
     if not url:
         return None
     try:
@@ -486,14 +505,12 @@ async def scrape_snkrdunk_single(page, url, target, max_cap=None):
         content = await page.inner_text("body")
         upper_bound = min(target["max_valid_price"], max_cap) if max_cap else target["max_valid_price"]
 
-        # 1. 最優先：個数選択タイルの「1個(99+) ¥9,150〜」をピンポイント抽出（11個などに反応しないよう (?<!\d) を付与）
         m_tile = re.search(r'(?<!\d)1個\s*(?:\([0-9+]+\))?\s*[¥￥]\s*([\d,]{4,6})\s*[~〜]', content)
         if m_tile:
             val = int(m_tile.group(1).replace(',', ''))
             if target["min_valid_price"] <= val <= upper_bound:
                 return val
 
-        # 2. 次点：「1個」が「出品待ち」だった場合、下部の売買履歴「〇分前 1個 新品S ¥9,150」の直近3件の中央値を採用
         hist_matches = re.findall(r'(?:分前|時間前|日前)\s+1個\s+\S+\s+[¥￥]\s*([\d,]{4,6})', content)
         hist_vals = [
             int(m.replace(',', '')) for m in hist_matches
@@ -502,7 +519,6 @@ async def scrape_snkrdunk_single(page, url, target, max_cap=None):
         if hist_vals:
             return int(statistics.median(hist_vals[:3]))
 
-        # 3. 最終フォールバック：「2個」という文字が登場する前のエリア（メイン最安値表示）からのみ抽出
         before_two_box = re.split(r'(?<!\d)2個\s*\(', content)[0]
         for m in re.findall(r'[¥￥]\s*([\d,]{4,6})\s*[~〜]', before_two_box):
             val = int(m.replace(',', ''))
@@ -553,7 +569,6 @@ async def scrape_homura_single(page, url, target):
 
 
 def apply_spike_guard(new_val, prev_val, label=""):
-    """前回比で+50%超（2個セット誤爆等）または-35%超の異常ジャンプのみをブロック"""
     if new_val is None:
         return prev_val
     if prev_val is None:
@@ -566,7 +581,6 @@ def apply_spike_guard(new_val, prev_val, label=""):
 
 
 def sanitize_past_history(history):
-    """過去のdata.jsonに混入した外れ値（ストームエメラルダ無15949円や無＞有の逆転データ）を自動修復"""
     for record in history:
         boxes = record.get("boxes", {})
         b30 = boxes.get("30th_celebration")
@@ -583,42 +597,51 @@ def sanitize_past_history(history):
 
 
 def check_and_notify(history, new_entry):
-    if not DISCORD_WEBHOOK or len(history) < 1:
+    """一度通知した価格を記憶し、同じ変動での重複通知（連投）を完全に防ぐ"""
+    if len(history) < 1:
         return
-    recent_records = history[-4:]
+
+    prev_anchors = history[-1].get("notified_anchors", {})
+    new_anchors = dict(prev_anchors)
     alerts = []
+
+    # 1件出品でブレやすいフリマの「シュリンク無」は除外し、メイン指標のみ通知
+    metrics = [
+        ("メルカリ(有)", "mercari_with"),
+        ("Yahoo!フリマ(有)", "yahoo_with"),
+        ("スニダン(有)", "snkrdunk_with"),
+        ("スニダン(無)", "snkrdunk_without"),
+        ("買取ホムラ(有)", "homura_with"),
+        ("買取ホムラ(無)", "homura_without"),
+    ]
 
     for box_id, box_data in new_entry["boxes"].items():
         box_name = box_data["name"]
-        metrics = [
-            ("メルカリ(有)", "mercari_with"),
-            ("メルカリ(無)", "mercari_without"),
-            ("Yahoo!フリマ(有)", "yahoo_with"),
-            ("Yahoo!フリマ(無)", "yahoo_without"),
-            ("スニダン(有)", "snkrdunk_with"),
-            ("スニダン(無)", "snkrdunk_without"),
-            ("買取ホムラ(有)", "homura_with"),
-            ("買取ホムラ(無)", "homura_without"),
-        ]
         for label, key in metrics:
             curr_val = box_data.get(key)
             if not curr_val:
                 continue
-            past_vals = [
-                r["boxes"].get(box_id, {}).get(key)
-                for r in recent_records
-                if r["boxes"].get(box_id, {}).get(key) is not None
-            ]
-            if not past_vals:
-                continue
-            base_val = past_vals[0]
+
+            anchor_key = f"{box_id}__{key}"
+            base_val = prev_anchors.get(anchor_key)
+
+            # 初回（まだ通知基準がない場合）は直近の価格を基準値としてセットするだけ（重複通知を防止）
+            if base_val is None:
+                prev_val = history[-1]["boxes"].get(box_id, {}).get(key)
+                base_val = prev_val if prev_val is not None else curr_val
+                new_anchors[anchor_key] = base_val
+
             diff = curr_val - base_val
             if abs(diff) >= ALERT_THRESHOLD:
                 sign = "+" if diff > 0 else ""
                 alerts.append(f"・**{box_name}** [{label}]\n  {base_val:,}円 → **{curr_val:,}円** ({sign}{diff:,}円)")
+                # 通知を送ったら基準価格を「今回の価格」に更新（ここからさらに±1,000円動くまで再通知しない）
+                new_anchors[anchor_key] = curr_val
 
-    if alerts:
-        msg = "🚨 **【ポケカBOX 相場変動アラート（過去2日比 ±1,000円以上）】**\n\n" + "\n".join(alerts)
+    new_entry["notified_anchors"] = new_anchors
+
+    if alerts and DISCORD_WEBHOOK:
+        msg = "🚨 **【ポケカBOX 相場変動アラート（前回通知比 ±1,000円以上）】**\n\n" + "\n".join(alerts)
         try:
             requests.post(DISCORD_WEBHOOK, json={"content": msg}, timeout=10)
         except Exception as e:
